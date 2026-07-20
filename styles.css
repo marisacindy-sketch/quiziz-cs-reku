@@ -1388,6 +1388,30 @@ h3 {
   min-height: 86px;
 }
 
+.access-list-card {
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid rgba(17, 134, 111, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(240, 251, 247, 0.96), rgba(247, 250, 252, 0.96));
+}
+
+.access-list-card strong {
+  font-size: 0.98rem;
+  font-weight: 680;
+}
+
+.access-list-card small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  font-weight: 520;
+}
+
+.access-list-card textarea {
+  min-height: 112px;
+}
+
 .owner-dashboard {
   display: grid;
   gap: 12px;
