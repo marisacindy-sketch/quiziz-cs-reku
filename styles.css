@@ -521,6 +521,32 @@ label span,
   background: rgba(255, 255, 255, 0.1);
 }
 
+.settings-submenu {
+  display: grid;
+  gap: 6px;
+  margin: -3px 0 4px 12px;
+  padding-left: 11px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.settings-subitem {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 32px;
+  border-radius: 9px;
+  color: rgba(255, 255, 255, 0.58);
+  background: transparent;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 560;
+}
+
+.settings-subitem.active,
+.settings-subitem:hover:not(:disabled) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .logout-link {
   margin-top: 4px;
   color: #ffbec8;
@@ -1487,30 +1513,6 @@ h3 {
   margin-bottom: 18px;
 }
 
-.settings-subnav {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 14px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f7fafc;
-}
-
-.settings-tab {
-  min-height: 34px;
-  color: var(--muted);
-  background: transparent;
-  font-size: 0.78rem;
-  font-weight: 620;
-}
-
-.settings-tab.active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--dark), #295179);
-}
-
 .settings-panel {
   animation: settings-panel-in 0.18s ease;
 }
@@ -1929,8 +1931,7 @@ h3 {
     justify-content: flex-start;
   }
 
-  .sidebar-nav,
-  .settings-subnav {
+  .sidebar-nav {
     grid-template-columns: 1fr;
   }
 

@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=33" />
+    <link rel="stylesheet" href="styles.css?v=34" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -270,6 +270,11 @@
           <span>Workspace</span>
           <button class="sidebar-link active" id="quizDeskButton" type="button">Quiz Desk</button>
           <button class="sidebar-link owner-only" id="settingsButton" type="button" hidden>Settings</button>
+          <div class="settings-submenu owner-only" id="settingsSubmenu" hidden>
+            <button class="settings-subitem active" type="button" data-settings-panel="quizControlsPanel">Quiz controls</button>
+            <button class="settings-subitem" type="button" data-settings-panel="responsesPanel">Responses</button>
+            <button class="settings-subitem" type="button" data-settings-panel="exportPanel">Google Form</button>
+          </div>
           <button class="sidebar-link logout-link" id="logoutButton" type="button">Logout</button>
         </nav>
       </aside>
@@ -465,12 +470,6 @@
           <button class="secondary compact" id="closeSettings" type="button">Back to quiz</button>
         </div>
 
-        <nav class="settings-subnav" aria-label="Owner settings sections">
-          <button class="settings-tab active" type="button" data-settings-panel="quizControlsPanel">Quiz controls</button>
-          <button class="settings-tab" type="button" data-settings-panel="responsesPanel">Responses</button>
-          <button class="settings-tab" type="button" data-settings-panel="exportPanel">Google Form</button>
-        </nav>
-
         <form id="settingsForm" class="settings-form settings-panel" data-settings-section="quizControlsPanel">
           <div class="form-grid">
             <label>
@@ -662,7 +661,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=33"></script>
-    <script src="app.js?v=33"></script>
+    <script src="quiz-data.js?v=34"></script>
+    <script src="app.js?v=34"></script>
   </body>
 </html>

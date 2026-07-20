@@ -58,6 +58,7 @@ const els = {
   quizDeskButton: document.querySelector("#quizDeskButton"),
   quizPage: document.querySelector("#quizPage"),
   settingsButton: document.querySelector("#settingsButton"),
+  settingsSubmenu: document.querySelector("#settingsSubmenu"),
   settingsPage: document.querySelector("#settingsPage"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsForm: document.querySelector("#settingsForm"),
@@ -223,12 +224,18 @@ function isOwner() {
 }
 
 function showSettingsPanel(panelName = "quizControlsPanel") {
+  const panelTitles = {
+    quizControlsPanel: "Quiz controls",
+    responsesPanel: "Responses",
+    exportPanel: "Google Form",
+  };
   document.querySelectorAll("[data-settings-section]").forEach((section) => {
     section.hidden = section.dataset.settingsSection !== panelName;
   });
   document.querySelectorAll("[data-settings-panel]").forEach((button) => {
     button.classList.toggle("active", button.dataset.settingsPanel === panelName);
   });
+  document.querySelector(".settings-card .drawer-head h2").textContent = panelTitles[panelName] || "Settings";
 }
 
 function showAppView(view = "quiz") {
@@ -237,9 +244,9 @@ function showAppView(view = "quiz") {
   els.settingsPage.hidden = !settingsView;
   els.quizDeskButton.classList.toggle("active", !settingsView);
   els.settingsButton.classList.toggle("active", settingsView);
+  els.settingsSubmenu.hidden = !settingsView;
   if (settingsView) {
     fillSettingsForm();
-    showSettingsPanel("quizControlsPanel");
   }
 }
 
@@ -579,6 +586,7 @@ function renderAccess() {
   const access = getAccessState();
   const admin = isOwner();
   els.settingsButton.hidden = !admin;
+  els.settingsSubmenu.hidden = !admin || els.settingsPage.hidden;
   els.ownerPreviewButton.hidden = true;
   els.accessBanner.hidden = admin;
 
@@ -1595,6 +1603,7 @@ function initEvents() {
   els.settingsButton.addEventListener("click", () => {
     if (!isOwner()) return;
     showAppView("settings");
+    showSettingsPanel("quizControlsPanel");
   });
 
   els.closeSettings.addEventListener("click", () => {
@@ -1602,7 +1611,10 @@ function initEvents() {
   });
 
   document.querySelectorAll("[data-settings-panel]").forEach((button) => {
-    button.addEventListener("click", () => showSettingsPanel(button.dataset.settingsPanel));
+    button.addEventListener("click", () => {
+      showAppView("settings");
+      showSettingsPanel(button.dataset.settingsPanel);
+    });
   });
 
   els.ownerPreviewButton.addEventListener("click", () => {
