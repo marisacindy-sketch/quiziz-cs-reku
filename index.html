@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=31" />
+    <link rel="stylesheet" href="styles.css?v=32" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -254,16 +254,34 @@
     </section>
 
     <div class="app-shell" id="appShell" hidden>
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Live training desk</p>
-          <h1 class="brand-title">
-            <img class="brand-logo" src="assets/reku-logo.jpg" alt="" />
-            <span>Quiziz CS Reku</span>
-          </h1>
+      <aside class="app-sidebar" aria-label="Main navigation">
+        <div class="sidebar-brand">
+          <img class="sidebar-logo" src="assets/reku-logo.jpg" alt="" />
+          <div>
+            <strong>Quiziz CS Reku</strong>
+            <span>CS learning desk</span>
+          </div>
         </div>
-        <div class="top-actions">
-          <div class="timer-chip countdown-tool" id="timerChip">
+        <div class="sidebar-user">
+          <span id="userEmail">user@email.com</span>
+          <small id="userRole">trainee</small>
+        </div>
+        <nav class="sidebar-nav">
+          <span>Workspace</span>
+          <button class="sidebar-link active" type="button">Quiz Desk</button>
+          <button class="sidebar-link owner-only" id="settingsButton" type="button" hidden>Settings</button>
+          <button class="sidebar-link logout-link" id="logoutButton" type="button">Logout</button>
+        </nav>
+      </aside>
+
+      <div class="app-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Live training desk</p>
+            <h1>Weekly Quiz Desk</h1>
+          </div>
+          <div class="top-actions">
+            <div class="timer-chip countdown-tool" id="timerChip">
             <div class="countdown-head">
               <small id="timerLabel">clock</small>
               <span id="timerText" class="sr-only">--:--:--</span>
@@ -288,14 +306,6 @@
               <i id="timerProgress"></i>
             </div>
           </div>
-          <div class="user-chip">
-            <span id="userEmail">user@email.com</span>
-            <small id="userRole">trainee</small>
-          </div>
-          <button class="icon-btn" id="settingsButton" type="button" hidden aria-label="Open settings">
-            Settings
-          </button>
-          <button class="ghost compact" id="logoutButton" type="button">Logout</button>
         </div>
       </header>
 
@@ -431,6 +441,7 @@
           </div>
         </section>
       </main>
+      </div>
     </div>
 
     <section class="time-alert-modal" id="timeAlertModal" hidden aria-live="assertive" aria-modal="true" role="dialog">
@@ -456,7 +467,13 @@
           <button class="icon-btn" id="closeSettings" type="button" aria-label="Close settings">Close</button>
         </div>
 
-        <form id="settingsForm" class="settings-form">
+        <nav class="settings-subnav" aria-label="Owner settings sections">
+          <button class="settings-tab active" type="button" data-settings-panel="quizControlsPanel">Quiz controls</button>
+          <button class="settings-tab" type="button" data-settings-panel="responsesPanel">Responses</button>
+          <button class="settings-tab" type="button" data-settings-panel="exportPanel">Google Form</button>
+        </nav>
+
+        <form id="settingsForm" class="settings-form settings-panel" data-settings-section="quizControlsPanel">
           <div class="form-grid">
             <label>
               <span>Open day</span>
@@ -528,7 +545,7 @@
           </p>
         </form>
 
-        <section class="owner-dashboard" aria-label="Owner dashboard">
+        <section class="owner-dashboard settings-panel" data-settings-section="responsesPanel" hidden aria-label="Owner dashboard">
           <div class="section-heading">
             <h3>Team snapshot</h3>
             <span>Submissions, timing, and review</span>
@@ -579,7 +596,7 @@
           </section>
         </section>
 
-        <section class="export-panel" aria-label="Google Forms export">
+        <section class="export-panel settings-panel" data-settings-section="exportPanel" hidden aria-label="Google Forms export">
           <div>
             <p class="eyebrow">Google Forms bridge</p>
             <h3>Export directly to Google Form</h3>
@@ -645,7 +662,7 @@
       </div>
     </aside>
 
-    <script src="quiz-data.js?v=31"></script>
-    <script src="app.js?v=31"></script>
+    <script src="quiz-data.js?v=32"></script>
+    <script src="app.js?v=32"></script>
   </body>
 </html>

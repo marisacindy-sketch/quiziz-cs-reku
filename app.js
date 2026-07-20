@@ -220,6 +220,15 @@ function isOwner() {
   return state.currentUser?.role === "owner";
 }
 
+function showSettingsPanel(panelName = "quizControlsPanel") {
+  document.querySelectorAll("[data-settings-section]").forEach((section) => {
+    section.hidden = section.dataset.settingsSection !== panelName;
+  });
+  document.querySelectorAll("[data-settings-panel]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.settingsPanel === panelName);
+  });
+}
+
 function getAttempt() {
   if (!state.currentUser) return null;
   return JSON.parse(localStorage.getItem(storageKey("attempt")) || "null");
@@ -1566,11 +1575,16 @@ function initEvents() {
   els.settingsButton.addEventListener("click", () => {
     if (!isOwner()) return;
     fillSettingsForm();
+    showSettingsPanel("quizControlsPanel");
     els.settingsDrawer.hidden = false;
   });
 
   els.closeSettings.addEventListener("click", () => {
     els.settingsDrawer.hidden = true;
+  });
+
+  document.querySelectorAll("[data-settings-panel]").forEach((button) => {
+    button.addEventListener("click", () => showSettingsPanel(button.dataset.settingsPanel));
   });
 
   els.ownerPreviewButton.addEventListener("click", () => {
