@@ -30,6 +30,7 @@ const state = {
   timerId: null,
   autoSubmitting: false,
   fiveMinuteAlertShown: false,
+  openResponseEmail: "",
   answers: {},
 };
 
@@ -934,9 +935,11 @@ function renderResponseViewer(email) {
   if (!isOwner()) return;
   const submission = getSubmission(email);
   if (!submission) {
+    state.openResponseEmail = "";
     els.responseViewer.hidden = true;
     return;
   }
+  state.openResponseEmail = email;
   const product = submission.activeProduct || state.settings.activeProduct;
   const questions = questionsForProduct(product);
   els.responseViewer.hidden = false;
@@ -1031,7 +1034,9 @@ function renderOwnerDashboard() {
           <button class="secondary compact" type="button" data-review-email="${escapeHtml(submission.email)}">Save</button>
         </td>
         <td>
-          <button class="compact" type="button" data-view-response="${escapeHtml(submission.email)}">View answers</button>
+          <button class="compact" type="button" data-view-response="${escapeHtml(submission.email)}">${
+            state.openResponseEmail === submission.email ? "Hide answers" : "View answers"
+          }</button>
         </td>
       </tr>
     `;
@@ -1058,6 +1063,7 @@ function renderOwnerDashboard() {
     submittedRows.concat(pendingRows).join("") ||
     `<tr><td colspan="10" class="empty-cell">No submissions yet.</td></tr>`;
   els.responseViewer.hidden = true;
+  state.openResponseEmail = "";
   els.responseDetailList.innerHTML = "";
 }
 
@@ -1731,7 +1737,18 @@ function initEvents() {
   els.submissionTableBody.addEventListener("click", (event) => {
     const viewButton = event.target.closest("button[data-view-response]");
     if (viewButton) {
-      renderResponseViewer(viewButton.dataset.viewResponse);
+      const email = viewButton.dataset.viewResponse;
+      if (state.openResponseEmail === email && !els.responseViewer.hidden) {
+        state.openResponseEmail = "";
+        els.responseViewer.hidden = true;
+        els.responseDetailList.innerHTML = "";
+        viewButton.textContent = "View answers";
+        return;
+      }
+      renderResponseViewer(email);
+      els.submissionTableBody.querySelectorAll("[data-view-response]").forEach((button) => {
+        button.textContent = button.dataset.viewResponse === email ? "Hide answers" : "View answers";
+      });
       return;
     }
     const button = event.target.closest("button[data-review-email]");
