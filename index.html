@@ -9,6 +9,159 @@
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
     <link rel="stylesheet" href="styles.css?v=25" />
+    <style>
+      .auth-visual {
+        border: 1px solid rgba(209, 218, 230, 0.82) !important;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(42, 166, 196, 0.18), transparent 32%),
+          radial-gradient(circle at 84% 78%, rgba(207, 70, 96, 0.15), transparent 30%),
+          linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(241, 246, 250, 0.94)) !important;
+      }
+
+      .auth-visual::before {
+        width: 310px !important;
+        height: 310px !important;
+        left: -96px !important;
+        top: -98px !important;
+        border: 24px solid transparent !important;
+        border-radius: 999px !important;
+        background:
+          linear-gradient(#f7fbff, #f7fbff) padding-box,
+          conic-gradient(from 120deg, #11866f, #315fbd, #cf4660, #bd7a12, #11866f) border-box !important;
+        opacity: 0.86 !important;
+        transform: none !important;
+      }
+
+      .auth-visual::after {
+        width: 430px !important;
+        height: 118px !important;
+        right: -138px !important;
+        bottom: 68px !important;
+        border-radius: 999px !important;
+        background: linear-gradient(90deg, rgba(17, 134, 111, 0.14), rgba(49, 95, 189, 0.12), rgba(189, 122, 18, 0.16)) !important;
+        transform: rotate(-7deg) !important;
+      }
+
+      .hero-card.login-preview {
+        top: 50% !important;
+        bottom: auto !important;
+        display: grid !important;
+        gap: 18px !important;
+        color: #111827 !important;
+        background: rgba(255, 255, 255, 0.84) !important;
+        border: 1px solid rgba(202, 213, 227, 0.9) !important;
+        box-shadow: 0 22px 50px rgba(30, 43, 59, 0.12) !important;
+        transform: translateY(-50%) !important;
+      }
+
+      .hero-card.login-preview::before {
+        content: "" !important;
+        position: absolute !important;
+        inset: 0 0 auto !important;
+        width: auto !important;
+        height: 4px !important;
+        padding: 0 !important;
+        border-radius: 14px 14px 0 0 !important;
+        background: linear-gradient(90deg, #11866f, #315fbd, #cf4660, #bd7a12) !important;
+      }
+
+      .preview-topline,
+      .preview-focus,
+      .preview-products {
+        display: flex !important;
+        align-items: center !important;
+      }
+
+      .preview-topline {
+        justify-content: space-between !important;
+        gap: 14px !important;
+      }
+
+      .preview-topline span,
+      .preview-topline strong {
+        width: fit-content !important;
+        border-radius: 999px !important;
+        padding: 7px 10px !important;
+        font-size: 0.72rem !important;
+        line-height: 1 !important;
+        font-weight: 900 !important;
+      }
+
+      .preview-topline span {
+        color: #667085 !important;
+        background: #edf3f8 !important;
+      }
+
+      .preview-topline strong {
+        color: #0e7d68 !important;
+        background: rgba(17, 134, 111, 0.12) !important;
+      }
+
+      .preview-focus {
+        gap: 16px !important;
+      }
+
+      .preview-focus > div:last-child {
+        display: grid !important;
+        gap: 6px !important;
+      }
+
+      .preview-focus > div:last-child strong {
+        font-size: clamp(1.55rem, 3.2vw, 2.45rem) !important;
+        line-height: 1 !important;
+      }
+
+      .preview-focus small {
+        color: #667085 !important;
+        font-weight: 800 !important;
+        line-height: 1.4 !important;
+      }
+
+      .preview-ring {
+        flex: 0 0 92px !important;
+        width: 92px !important;
+        height: 92px !important;
+        display: grid !important;
+        place-items: center !important;
+        align-content: center !important;
+        border: 8px solid transparent !important;
+        border-radius: 50% !important;
+        background:
+          linear-gradient(#fff, #fff) padding-box,
+          conic-gradient(#11866f 0 42%, #315fbd 42% 70%, #cf4660 70% 88%, #d8e2ee 88% 100%) border-box !important;
+      }
+
+      .preview-ring span {
+        display: block !important;
+        color: #111827 !important;
+        font-size: 1.7rem !important;
+        line-height: 1 !important;
+        font-weight: 950 !important;
+      }
+
+      .preview-ring small {
+        display: block !important;
+        margin-top: 3px !important;
+        color: #667085 !important;
+        font-size: 0.68rem !important;
+        text-transform: uppercase !important;
+      }
+
+      .preview-products {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+
+      .preview-products span {
+        border: 1px solid #d8e2ee !important;
+        border-radius: 999px !important;
+        padding: 7px 10px !important;
+        background: rgba(247, 250, 252, 0.92) !important;
+        color: #46566d !important;
+        font-size: 0.76rem !important;
+        font-weight: 900 !important;
+      }
+    </style>
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
