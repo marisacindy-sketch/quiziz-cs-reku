@@ -188,6 +188,30 @@ function saveGoogleFormConfig() {
   localStorage.setItem("quiziz-google-form-config", JSON.stringify(state.googleForm));
 }
 
+function getTraineePasswordStore() {
+  return JSON.parse(localStorage.getItem("quiziz-trainee-passwords") || "{}");
+}
+
+function saveTraineePasswordStore(store) {
+  localStorage.setItem("quiziz-trainee-passwords", JSON.stringify(store));
+}
+
+async function hashPassword(email, password) {
+  const value = `${email}:${password}:quiziz-cs-reku`;
+  if (window.crypto?.subtle) {
+    const encoded = new TextEncoder().encode(value);
+    const digest = await window.crypto.subtle.digest("SHA-256", encoded);
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return String(hash);
+}
+
 function normalizeSettings(settings) {
   return { ...defaultSettings, ...(settings || {}) };
 }
@@ -1030,14 +1054,33 @@ function saveSubmissionReview(email, score, feedback) {
   renderExportHistory();
 }
 
-function login(email, password) {
+async function login(email, password) {
   const normalizedEmail = email.trim().toLowerCase();
   if (normalizedEmail === OWNER_EMAIL && password === OWNER_PASSWORD) {
     return { email: normalizedEmail, role: "owner" };
   }
+
   if (!normalizedEmail.includes("@") || password.length < 6) {
     throw new Error("Use a valid email and a password with at least 6 characters.");
   }
+
+  const invitedEmails = expectedEmailList();
+  if (!invitedEmails.includes(normalizedEmail)) {
+    throw new Error("This email is not on the quiz access list. Ask the owner to add it first.");
+  }
+
+  const passwordStore = getTraineePasswordStore();
+  const passwordHash = await hashPassword(normalizedEmail, password);
+  if (!passwordStore[normalizedEmail]) {
+    passwordStore[normalizedEmail] = passwordHash;
+    saveTraineePasswordStore(passwordStore);
+    return { email: normalizedEmail, role: "trainee" };
+  }
+
+  if (passwordStore[normalizedEmail] !== passwordHash) {
+    throw new Error("Wrong password for this email.");
+  }
+
   return { email: normalizedEmail, role: "trainee" };
 }
 
@@ -1496,10 +1539,10 @@ function saveQuestionEdit() {
 }
 
 function initEvents() {
-  els.loginForm.addEventListener("submit", (event) => {
+  els.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-      state.currentUser = login(els.emailInput.value, els.passwordInput.value);
+      state.currentUser = await login(els.emailInput.value, els.passwordInput.value);
       sessionStorage.setItem("quiziz-current-user", JSON.stringify(state.currentUser));
       els.loginError.textContent = "";
       showApp();
@@ -1546,11 +1589,12 @@ function initEvents() {
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
+    const allowedCount = expectedEmailList().length;
     els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
       state.settings.closeDay,
     )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
       state.settings.activeProduct
-    }.`;
+    }. Allowed emails: ${allowedCount}.`;
   });
 
   els.searchInput.addEventListener("input", (event) => {

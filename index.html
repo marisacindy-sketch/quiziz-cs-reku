@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=28" />
+    <link rel="stylesheet" href="styles.css?v=29" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -248,6 +248,7 @@
           />
         </label>
         <button type="submit">Let’s get in</button>
+        <p class="helper-text">Use your invited email. First time here? This password becomes your quiz password.</p>
         <p class="error-text" id="loginError" role="alert"></p>
       </form>
     </section>
@@ -511,10 +512,10 @@
               </select>
             </label>
             <label class="form-wide">
-              <span>Expected trainee emails</span>
+              <span>Allowed trainee emails</span>
               <textarea
                 id="expectedEmails"
-                placeholder="one email per line, so pending people can show up on the owner dashboard"
+                placeholder="one invited email per line. Only these emails can log in and set their own password."
               ></textarea>
             </label>
           </div>
@@ -642,7 +643,7 @@
       </div>
     </aside>
 
-    <script src="quiz-data.js?v=28"></script>
-    <script src="app.js?v=28"></script>
+    <script src="quiz-data.js?v=29"></script>
+    <script src="app.js?v=29"></script>
   </body>
 </html>
