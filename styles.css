@@ -1524,6 +1524,58 @@ h3 {
   gap: 10px;
 }
 
+.response-dropdown {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7fafc;
+  overflow: hidden;
+}
+
+.response-dropdown summary {
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  list-style: none;
+}
+
+.response-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.response-dropdown summary::after {
+  content: "Open answers";
+  width: fit-content;
+  margin-top: 5px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: var(--green);
+  background: #e7f7f2;
+  font-size: 0.72rem;
+  font-weight: 680;
+}
+
+.response-dropdown[open] summary::after {
+  content: "Hide answers";
+}
+
+.response-dropdown summary span {
+  font-size: 0.94rem;
+  font-weight: 680;
+}
+
+.response-dropdown summary small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 520;
+}
+
+.response-dropdown-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 10px 10px;
+}
+
 .response-card {
   display: grid;
   gap: 10px;

@@ -909,13 +909,14 @@ function renderResponseViewer(email) {
   const product = submission.activeProduct || state.settings.activeProduct;
   const questions = questionsForProduct(product);
   els.responseViewer.hidden = false;
-  els.responseViewerTitle.textContent = submission.email;
-  els.responseViewerMeta.textContent = `${product} · Submitted ${formatDate(
+  els.responseViewerTitle.textContent = "Response dropdown";
+  els.responseViewerMeta.textContent = "Open one name when you need to review the answers.";
+  const responseMeta = `${product} · Submitted ${formatDate(
     new Date(submission.submittedAt),
   )} WIB · ${submission.durationFormatted || formatDuration(submission.durationSeconds)} · ${
     submission.answered
   }/${submission.totalQuestions} answered`;
-  els.responseDetailList.innerHTML = questions
+  const questionCards = questions
     .map((question) => {
       const answer = submission.answers?.[question.id] || "";
       return `
@@ -942,6 +943,17 @@ function renderResponseViewer(email) {
       `;
     })
     .join("");
+  els.responseDetailList.innerHTML = `
+    <details class="response-dropdown" open>
+      <summary>
+        <span>${escapeHtml(submission.email)}</span>
+        <small>${escapeHtml(responseMeta)}</small>
+      </summary>
+      <div class="response-dropdown-body">
+        ${questionCards}
+      </div>
+    </details>
+  `;
 }
 
 function renderOwnerDashboard() {
@@ -1014,12 +1026,8 @@ function renderOwnerDashboard() {
   els.submissionTableBody.innerHTML =
     submittedRows.concat(pendingRows).join("") ||
     `<tr><td colspan="10" class="empty-cell">No submissions yet.</td></tr>`;
-  if (submissions.length && els.responseViewer.hidden) {
-    renderResponseViewer(submissions[0].email);
-  }
-  if (!submissions.length) {
-    els.responseViewer.hidden = true;
-  }
+  els.responseViewer.hidden = true;
+  els.responseDetailList.innerHTML = "";
 }
 
 function saveSubmissionReview(email, score, feedback) {
