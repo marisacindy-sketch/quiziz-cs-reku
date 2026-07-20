@@ -356,7 +356,7 @@ label span,
 }
 
 .login-card,
-.drawer-card,
+.settings-card,
 .summary-grid article,
 .question-panel,
 .quiz-panel,
@@ -1466,20 +1466,20 @@ h3 {
   display: inline;
 }
 
-.settings-drawer {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
+.settings-page {
   display: grid;
-  place-items: end;
-  background: rgba(17, 24, 39, 0.32);
+  gap: 14px;
 }
 
-.drawer-card {
-  width: min(580px, calc(100% - 24px));
-  height: min(100vh - 24px, 760px);
-  margin: 12px;
+.settings-card {
+  width: 100%;
+  min-height: calc(100vh - 118px);
   padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
   overflow: auto;
 }
 

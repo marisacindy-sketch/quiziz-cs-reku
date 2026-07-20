@@ -55,8 +55,10 @@ const els = {
   userEmail: document.querySelector("#userEmail"),
   userRole: document.querySelector("#userRole"),
   logoutButton: document.querySelector("#logoutButton"),
+  quizDeskButton: document.querySelector("#quizDeskButton"),
+  quizPage: document.querySelector("#quizPage"),
   settingsButton: document.querySelector("#settingsButton"),
-  settingsDrawer: document.querySelector("#settingsDrawer"),
+  settingsPage: document.querySelector("#settingsPage"),
   closeSettings: document.querySelector("#closeSettings"),
   settingsForm: document.querySelector("#settingsForm"),
   openDay: document.querySelector("#openDay"),
@@ -227,6 +229,18 @@ function showSettingsPanel(panelName = "quizControlsPanel") {
   document.querySelectorAll("[data-settings-panel]").forEach((button) => {
     button.classList.toggle("active", button.dataset.settingsPanel === panelName);
   });
+}
+
+function showAppView(view = "quiz") {
+  const settingsView = view === "settings" && isOwner();
+  els.quizPage.hidden = settingsView;
+  els.settingsPage.hidden = !settingsView;
+  els.quizDeskButton.classList.toggle("active", !settingsView);
+  els.settingsButton.classList.toggle("active", settingsView);
+  if (settingsView) {
+    fillSettingsForm();
+    showSettingsPanel("quizControlsPanel");
+  }
 }
 
 function getAttempt() {
@@ -1114,6 +1128,7 @@ function showApp() {
   renderAccess();
   renderOwnerDashboard();
   renderExportHistory();
+  showAppView("quiz");
   updateTimer();
   window.clearInterval(state.timerId);
   state.timerId = window.setInterval(() => {
@@ -1569,18 +1584,21 @@ function initEvents() {
   });
 
   els.logoutButton.addEventListener("click", () => {
+    showAppView("quiz");
     showLogin();
+  });
+
+  els.quizDeskButton.addEventListener("click", () => {
+    showAppView("quiz");
   });
 
   els.settingsButton.addEventListener("click", () => {
     if (!isOwner()) return;
-    fillSettingsForm();
-    showSettingsPanel("quizControlsPanel");
-    els.settingsDrawer.hidden = false;
+    showAppView("settings");
   });
 
   els.closeSettings.addEventListener("click", () => {
-    els.settingsDrawer.hidden = true;
+    showAppView("quiz");
   });
 
   document.querySelectorAll("[data-settings-panel]").forEach((button) => {

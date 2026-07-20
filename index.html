@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=32" />
+    <link rel="stylesheet" href="styles.css?v=33" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -268,7 +268,7 @@
         </div>
         <nav class="sidebar-nav">
           <span>Workspace</span>
-          <button class="sidebar-link active" type="button">Quiz Desk</button>
+          <button class="sidebar-link active" id="quizDeskButton" type="button">Quiz Desk</button>
           <button class="sidebar-link owner-only" id="settingsButton" type="button" hidden>Settings</button>
           <button class="sidebar-link logout-link" id="logoutButton" type="button">Logout</button>
         </nav>
@@ -309,7 +309,7 @@
         </div>
       </header>
 
-      <main>
+      <main id="quizPage">
         <section class="access-banner" id="accessBanner">
           <div>
             <span id="accessStatus">Getting things ready</span>
@@ -441,8 +441,6 @@
           </div>
         </section>
       </main>
-      </div>
-    </div>
 
     <section class="time-alert-modal" id="timeAlertModal" hidden aria-live="assertive" aria-modal="true" role="dialog">
       <div class="time-alert-card">
@@ -457,14 +455,14 @@
       </div>
     </section>
 
-    <aside class="settings-drawer" id="settingsDrawer" hidden aria-label="Owner settings">
-      <div class="drawer-card">
+      <section class="settings-page" id="settingsPage" hidden aria-label="Owner settings">
+      <div class="settings-card">
         <div class="drawer-head">
           <div>
             <p class="eyebrow">Owner cockpit</p>
             <h2>Quiz controls</h2>
           </div>
-          <button class="icon-btn" id="closeSettings" type="button" aria-label="Close settings">Close</button>
+          <button class="secondary compact" id="closeSettings" type="button">Back to quiz</button>
         </div>
 
         <nav class="settings-subnav" aria-label="Owner settings sections">
@@ -660,9 +658,11 @@
           <p class="helper-text" id="exportStatus">No export yet.</p>
         </section>
       </div>
-    </aside>
+      </section>
+      </div>
+    </div>
 
-    <script src="quiz-data.js?v=32"></script>
-    <script src="app.js?v=32"></script>
+    <script src="quiz-data.js?v=33"></script>
+    <script src="app.js?v=33"></script>
   </body>
 </html>
