@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiziz CS Reku</title>
+    <meta
+      name="description"
+      content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="auth-screen" id="authScreen">
+      <div class="auth-visual" aria-hidden="true">
+        <div class="hero-card">
+          <span>40 essay</span>
+          <strong>4 products</strong>
+          <small>General / Spot / US Stock / Perpetuals</small>
+        </div>
+      </div>
+      <form class="login-card" id="loginForm">
+        <p class="eyebrow">Weekly CS challenge</p>
+        <h1>Quiziz CS Reku</h1>
+        <p class="login-copy">
+          Log in, warm up your case-handling brain, and jump in when this week’s quiz window opens.
+        </p>
+        <label>
+          <span>Email</span>
+          <input id="emailInput" type="email" placeholder="nama@email.com" autocomplete="email" required />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            id="passwordInput"
+            type="password"
+            placeholder="Your quiz passcode"
+            autocomplete="current-password"
+            minlength="6"
+            required
+          />
+        </label>
+        <button type="submit">Let’s get in</button>
+        <p class="helper-text">
+          Owner access: <strong>marisa@reku.id</strong> · passcode <strong>owner123</strong>
+        </p>
+        <p class="error-text" id="loginError" role="alert"></p>
+      </form>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Live training desk</p>
+          <h1>Quiziz CS Reku</h1>
+        </div>
+        <div class="top-actions">
+          <div class="timer-chip countdown-tool" id="timerChip">
+            <div class="countdown-head">
+              <small id="timerLabel">clock</small>
+              <span id="timerText" class="sr-only">--:--:--</span>
+            </div>
+            <div class="countdown-reels" aria-hidden="true">
+              <div class="time-reel" data-unit="hours">
+                <span class="reel-number" id="timerHours">--</span>
+                <small>Hour</small>
+              </div>
+              <i>:</i>
+              <div class="time-reel" data-unit="minutes">
+                <span class="reel-number" id="timerMinutes">--</span>
+                <small>Min</small>
+              </div>
+              <i>:</i>
+              <div class="time-reel" data-unit="seconds">
+                <span class="reel-number" id="timerSeconds">--</span>
+                <small>Sec</small>
+              </div>
+            </div>
+            <div class="countdown-track" aria-hidden="true">
+              <i id="timerProgress"></i>
+            </div>
+          </div>
+          <div class="user-chip">
+            <span id="userEmail">user@email.com</span>
+            <small id="userRole">trainee</small>
+          </div>
+          <button class="icon-btn" id="settingsButton" type="button" hidden aria-label="Open settings">
+            Settings
+          </button>
+          <button class="ghost compact" id="logoutButton" type="button">Logout</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="access-banner" id="accessBanner">
+          <div>
+            <span id="accessStatus">Getting things ready</span>
+            <strong id="accessTitle">Checking this week’s quiz window</strong>
+            <p id="accessCopy"></p>
+          </div>
+          <button id="ownerPreviewButton" class="secondary" type="button" hidden>Owner preview</button>
+        </section>
+
+        <section class="summary-grid" aria-label="Quiz summary">
+          <article>
+            <span>Products</span>
+            <strong>4</strong>
+            <small>General, Spot, US Stock, Perpetuals</small>
+          </article>
+          <article>
+            <span>Total Questions</span>
+            <strong id="totalQuestions">40</strong>
+            <small>Real CS-style cases</small>
+          </article>
+          <article>
+            <span>Total Points</span>
+            <strong id="totalPoints">400</strong>
+            <small>10 points each</small>
+          </article>
+          <article>
+            <span>Progress</span>
+            <strong><span id="answeredCount">0</span>/<span id="questionCount">40</span></strong>
+            <small>Your draft keeps saving</small>
+          </article>
+        </section>
+
+        <section class="workspace" id="quizWorkspace">
+          <aside class="question-panel" aria-label="Question list">
+            <div class="panel-tools">
+              <label class="search-box">
+                <span>Search questions</span>
+                <input id="searchInput" type="search" placeholder="deposit, fraud, margin..." />
+              </label>
+              <label class="filter-box">
+                <span>Product</span>
+                <select id="productFilter">
+                  <option value="all">All products</option>
+                </select>
+              </label>
+            </div>
+            <div class="product-tabs" id="productTabs" aria-label="Product quick filters"></div>
+            <div class="question-list" id="questionList"></div>
+          </aside>
+
+          <section class="quiz-panel" aria-live="polite">
+            <div class="quiz-header">
+              <div>
+                <p class="eyebrow" id="activeProduct">General</p>
+                <h2 id="activeTitle">Question 1</h2>
+              </div>
+              <span class="points-badge" id="activePoints">10 points</span>
+            </div>
+
+            <div class="case-ribbon">
+              <span id="caseType">Essay</span>
+              <div class="mini-bars" aria-hidden="true">
+                <i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+
+            <p class="question-text" id="questionText"></p>
+
+            <label class="answer-input">
+              <span>Your response</span>
+              <textarea id="userAnswer" placeholder="Write it like you would explain it to a real user..."></textarea>
+            </label>
+
+            <section class="owner-editor" id="ownerEditor" hidden>
+              <div class="section-heading">
+                <h3>Owner question studio</h3>
+                <span>Tune the wording before the team sees it</span>
+              </div>
+              <label>
+                <span>Question text</span>
+                <textarea id="editQuestionText" placeholder="Edit the Indonesian question text..."></textarea>
+              </label>
+              <label>
+                <span>Answer key</span>
+                <textarea id="editAnswerText" placeholder="Edit the Indonesian answer key..."></textarea>
+              </label>
+              <button id="saveQuestionEdit" class="secondary" type="button">Save this question</button>
+            </section>
+
+            <div class="action-row">
+              <button id="saveAnswer" type="button">Save draft</button>
+              <button id="toggleKey" class="secondary" type="button">Show answer key</button>
+              <button id="nextQuestion" class="ghost" type="button">Next case</button>
+              <button id="submitQuiz" class="danger" type="button">Lock my answers</button>
+            </div>
+
+            <section class="answer-key" id="answerKey" hidden>
+              <div class="section-heading">
+                <h3>Answer key</h3>
+                <span>10-point rubric</span>
+              </div>
+              <p id="answerText"></p>
+            </section>
+          </section>
+        </section>
+
+        <section class="trainee-form" id="traineeForm" hidden aria-label="Trainee quiz form">
+          <div class="form-hero">
+            <div>
+              <p class="eyebrow" id="traineeProductName">General</p>
+              <h2>Answer this week’s cases</h2>
+              <p>
+                Write your answers clearly, like you’re explaining the case to a real Reku user.
+                Your draft saves while you type, and the form submits automatically when time runs out.
+              </p>
+            </div>
+            <span class="points-badge" id="traineeQuestionTotal">10 questions</span>
+          </div>
+          <div class="trainee-form-list" id="traineeQuestionForm"></div>
+          <div class="sticky-submit">
+            <div>
+              <strong><span id="traineeAnsweredCount">0</span>/<span id="traineeQuestionCount">10</span> answered</strong>
+              <span>Keep it thoughtful. Short is fine, vague is not.</span>
+            </div>
+            <div class="export-actions">
+              <button id="traineeSaveDraft" class="secondary" type="button">Save draft</button>
+              <button id="traineeSubmitQuiz" class="danger" type="button">Submit quiz</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <section class="time-alert-modal" id="timeAlertModal" hidden aria-live="assertive" aria-modal="true" role="dialog">
+      <div class="time-alert-card">
+        <div class="time-alert-icon" aria-hidden="true">!</div>
+        <p class="eyebrow">Time warning</p>
+        <h2>5 minutes left</h2>
+        <p>
+          Quiziz is paused at 5:00. When you click keep working, the timer will continue
+          and your answers will be submitted automatically when time runs out.
+        </p>
+        <button id="keepWorkingButton" type="button">Keep working</button>
+      </div>
+    </section>
+
+    <aside class="settings-drawer" id="settingsDrawer" hidden aria-label="Owner settings">
+      <div class="drawer-card">
+        <div class="drawer-head">
+          <div>
+            <p class="eyebrow">Owner cockpit</p>
+            <h2>Quiz controls</h2>
+          </div>
+          <button class="icon-btn" id="closeSettings" type="button" aria-label="Close settings">Close</button>
+        </div>
+
+        <form id="settingsForm" class="settings-form">
+          <div class="form-grid">
+            <label>
+              <span>Open day</span>
+              <select id="openDay">
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+              </select>
+            </label>
+            <label>
+              <span>Open time</span>
+              <input id="openTime" type="time" />
+            </label>
+            <label>
+              <span>Close day</span>
+              <select id="closeDay">
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+              </select>
+            </label>
+            <label>
+              <span>Close time</span>
+              <input id="closeTime" type="time" />
+            </label>
+            <label>
+              <span>Working duration</span>
+              <input id="durationMinutes" type="number" min="10" max="480" step="5" />
+            </label>
+            <label>
+              <span>Answer key visibility</span>
+              <select id="answerKeyMode">
+                <option value="owner">Owner only</option>
+                <option value="after-submit">After submit</option>
+                <option value="always">Everyone can view</option>
+              </select>
+            </label>
+            <label>
+              <span>This week’s product</span>
+              <select id="activeProductSetting">
+                <option value="General">General</option>
+                <option value="Kripto Spot">Kripto Spot</option>
+                <option value="US Stock">US Stock</option>
+                <option value="Perpetuals">Perpetuals</option>
+              </select>
+            </label>
+            <label class="form-wide">
+              <span>Expected trainee emails</span>
+              <textarea
+                id="expectedEmails"
+                placeholder="one email per line, so pending people can show up on the owner dashboard"
+              ></textarea>
+            </label>
+          </div>
+          <button type="submit">Save the rules</button>
+          <p class="helper-text" id="settingsSavedText">
+            Default run: Friday 13:00 to Sunday 23:59, 90 minutes. When the clock hits zero,
+            whatever is saved gets submitted automatically.
+          </p>
+        </form>
+
+        <section class="owner-dashboard" aria-label="Owner dashboard">
+          <div class="section-heading">
+            <h3>Team snapshot</h3>
+            <span>Submissions, timing, and review</span>
+          </div>
+          <div class="owner-metrics">
+            <article>
+              <span>Submitted</span>
+              <strong id="metricSubmitted">0</strong>
+            </article>
+            <article>
+              <span>Pending</span>
+              <strong id="metricPending">0</strong>
+            </article>
+            <article>
+              <span>Avg time</span>
+              <strong id="metricAverageDuration">00:00:00</strong>
+            </article>
+            <article>
+              <span>Auto-submit</span>
+              <strong id="metricAutoSubmit">0</strong>
+            </article>
+          </div>
+          <div class="submission-table-wrap">
+            <table class="submission-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Duration</th>
+                  <th>Reason</th>
+                  <th>Answered</th>
+                  <th>Form</th>
+                  <th>Score</th>
+                  <th>Feedback</th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="submissionTableBody"></tbody>
+            </table>
+          </div>
+          <section class="response-viewer" id="responseViewer" hidden>
+            <div class="section-heading">
+              <h3 id="responseViewerTitle">Response detail</h3>
+              <span id="responseViewerMeta">Pick a response to review</span>
+            </div>
+            <div class="response-list" id="responseDetailList"></div>
+          </section>
+        </section>
+
+        <section class="export-panel" aria-label="Google Forms export">
+          <div>
+            <p class="eyebrow">Google Forms bridge</p>
+            <h3>Export directly to Google Form</h3>
+            <p class="helper-text">
+              Create or update one Google Form per month and product. Set the connector once,
+              then this button sends questions, answers, scores, and feedback straight there.
+            </p>
+          </div>
+          <div class="google-form-grid">
+            <label>
+              <span>Month</span>
+              <input id="exportMonth" type="month" />
+            </label>
+            <label>
+              <span>Product</span>
+              <select id="exportProduct">
+                <option value="General">General</option>
+                <option value="Kripto Spot">Kripto Spot</option>
+                <option value="US Stock">US Stock</option>
+                <option value="Perpetuals">Perpetuals</option>
+              </select>
+            </label>
+            <label>
+              <span>Google Form connector URL</span>
+              <input
+                id="googleConnectorUrl"
+                type="url"
+                placeholder="Paste Apps Script web app URL here"
+              />
+            </label>
+            <label>
+              <span>Google Form export</span>
+              <select id="googleFormEnabled">
+                <option value="off">Connector off</option>
+                <option value="on">Connector on</option>
+              </select>
+            </label>
+          </div>
+          <div class="export-actions">
+            <button id="exportMonthlyForm" type="button">Create / update Google Form</button>
+            <button id="saveGoogleFormConfig" class="secondary" type="button">Save connector</button>
+            <button id="downloadConnectorGuide" class="secondary" type="button">Download connector script</button>
+          </div>
+          <p class="helper-text" id="googleFormStatus">
+            Paste the connector URL and turn connector on first. No entry IDs needed.
+          </p>
+
+          <div class="export-divider"></div>
+          <div class="section-heading">
+            <h3>Quiz history</h3>
+            <span>Saved after each monthly export</span>
+          </div>
+          <div class="history-list" id="exportHistoryList"></div>
+
+          <div class="export-divider"></div>
+          <h3>Backup downloads</h3>
+          <div class="export-actions">
+            <button id="exportResponses" type="button">Export responses CSV</button>
+            <button id="exportQuestions" class="secondary" type="button">Export question template</button>
+          </div>
+          <p class="helper-text" id="exportStatus">No export yet.</p>
+        </section>
+      </div>
+    </aside>
+
+    <script src="quiz-data.js?v=23"></script>
+    <script src="app.js?v=23"></script>
+  </body>
+</html>
