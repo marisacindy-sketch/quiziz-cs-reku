@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="styles.css?v=26" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -84,7 +84,7 @@
         padding: 7px 10px !important;
         font-size: 0.72rem !important;
         line-height: 1 !important;
-        font-weight: 900 !important;
+        font-weight: 760 !important;
       }
 
       .preview-topline span {
@@ -97,6 +97,29 @@
         background: rgba(17, 134, 111, 0.12) !important;
       }
 
+      .brand-title {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+      }
+
+      .brand-logo {
+        width: 42px !important;
+        height: 42px !important;
+        flex: 0 0 42px !important;
+        border-radius: 12px !important;
+        object-fit: cover !important;
+        background: #fff !important;
+        box-shadow: 0 10px 24px rgba(17, 24, 39, 0.1) !important;
+      }
+
+      .login-card h1,
+      .topbar h1 {
+        font-size: clamp(1.55rem, 3vw, 2.45rem) !important;
+        font-weight: 780 !important;
+        letter-spacing: 0 !important;
+      }
+
       .preview-focus {
         gap: 16px !important;
       }
@@ -107,13 +130,14 @@
       }
 
       .preview-focus > div:last-child strong {
-        font-size: clamp(1.55rem, 3.2vw, 2.45rem) !important;
+        font-size: clamp(1.45rem, 3vw, 2.15rem) !important;
+        font-weight: 760 !important;
         line-height: 1 !important;
       }
 
       .preview-focus small {
         color: #667085 !important;
-        font-weight: 800 !important;
+        font-weight: 650 !important;
         line-height: 1.4 !important;
       }
 
@@ -136,7 +160,7 @@
         color: #111827 !important;
         font-size: 1.7rem !important;
         line-height: 1 !important;
-        font-weight: 950 !important;
+        font-weight: 760 !important;
       }
 
       .preview-ring small {
@@ -144,7 +168,14 @@
         margin-top: 3px !important;
         color: #667085 !important;
         font-size: 0.68rem !important;
+        font-weight: 650 !important;
         text-transform: uppercase !important;
+      }
+
+      .login-card label span,
+      .login-card button,
+      .login-card .eyebrow {
+        font-weight: 760 !important;
       }
 
       .preview-products {
@@ -159,7 +190,7 @@
         background: rgba(247, 250, 252, 0.92) !important;
         color: #46566d !important;
         font-size: 0.76rem !important;
-        font-weight: 900 !important;
+        font-weight: 760 !important;
       }
     </style>
   </head>
@@ -191,7 +222,10 @@
       </div>
       <form class="login-card" id="loginForm">
         <p class="eyebrow">Weekly CS challenge</p>
-        <h1>Quiziz CS Reku</h1>
+        <h1 class="brand-title">
+          <img class="brand-logo" src="assets/reku-logo.jpg" alt="" />
+          <span>Quiziz CS Reku</span>
+        </h1>
         <p class="login-copy">
           Log in, warm up your case-handling brain, and jump in when this week’s quiz window opens.
         </p>
@@ -219,7 +253,10 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Live training desk</p>
-          <h1>Quiziz CS Reku</h1>
+          <h1 class="brand-title">
+            <img class="brand-logo" src="assets/reku-logo.jpg" alt="" />
+            <span>Quiziz CS Reku</span>
+          </h1>
         </div>
         <div class="top-actions">
           <div class="timer-chip countdown-tool" id="timerChip">
@@ -602,7 +639,7 @@
       </div>
     </aside>
 
-    <script src="quiz-data.js?v=25"></script>
-    <script src="app.js?v=25"></script>
+    <script src="quiz-data.js?v=26"></script>
+    <script src="app.js?v=26"></script>
   </body>
 </html>

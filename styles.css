@@ -275,7 +275,7 @@ label span,
   border-radius: 999px;
   padding: 7px 10px;
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .preview-topline span {
@@ -298,13 +298,14 @@ label span,
 }
 
 .preview-focus > div:last-child strong {
-  font-size: clamp(1.55rem, 3.2vw, 2.45rem);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  font-weight: 760;
   line-height: 1;
 }
 
 .preview-focus small {
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1.4;
 }
 
@@ -327,7 +328,7 @@ label span,
   display: block;
   font-size: 1.7rem;
   line-height: 1;
-  font-weight: 950;
+  font-weight: 760;
 }
 
 .preview-ring small {
@@ -335,6 +336,7 @@ label span,
   margin-top: 3px;
   color: var(--muted);
   font-size: 0.68rem;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
@@ -350,7 +352,7 @@ label span,
   background: rgba(247, 250, 252, 0.92);
   color: #46566d;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 760;
 }
 
 .login-card,
@@ -380,6 +382,12 @@ label span,
   inset: 0 0 auto;
   height: 4px;
   background: linear-gradient(90deg, var(--green), var(--blue), var(--gold));
+}
+
+.login-card label span,
+.login-card button,
+.login-card .eyebrow {
+  font-weight: 760;
 }
 
 .login-copy,
@@ -448,9 +456,26 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
   line-height: 1;
+  font-weight: 780;
   letter-spacing: 0;
+}
+
+.brand-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.1);
 }
 
 h2 {
