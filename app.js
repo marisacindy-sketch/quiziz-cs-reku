@@ -205,12 +205,60 @@ function saveExportHistory(history) {
   localStorage.setItem("quiziz-export-history", JSON.stringify(history));
 }
 
+function nameFromEmail(email) {
+  return String(email || "")
+    .split("@")[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function traineeRoster() {
+  const rows = String(state.settings.expectedEmails || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      if (line.includes("|")) return [line];
+      return line
+        .split(/[;, ]+/)
+        .map((email) => email.trim())
+        .filter((email) => email.includes("@"));
+    });
+
+  const seen = new Set();
+  return rows
+    .map((row) => {
+      if (String(row).includes("|")) {
+        const parts = String(row).split("|").map((part) => part.trim());
+        const email = parts.find((part) => part.includes("@"))?.toLowerCase() || "";
+        const emailIndex = parts.findIndex((part) => part.includes("@"));
+        const name = (emailIndex > 0 ? parts[0] : "") || nameFromEmail(email);
+        const position = parts[emailIndex + 1] || parts.find((part, index) => index !== emailIndex && index !== 0) || "";
+        return { name, email, position };
+      }
+      const email = String(row).trim().toLowerCase();
+      return { name: nameFromEmail(email), email, position: "" };
+    })
+    .filter((person) => person.email.includes("@"))
+    .filter((person) => {
+      if (seen.has(person.email)) return false;
+      seen.add(person.email);
+      return true;
+    });
+}
+
 function expectedEmailList() {
-  return String(state.settings.expectedEmails || "")
-    .split(/[\n,; ]+/)
-    .map((email) => email.trim().toLowerCase())
-    .filter((email) => email.includes("@"))
-    .filter((email, index, list) => list.indexOf(email) === index);
+  return traineeRoster().map((person) => person.email);
+}
+
+function traineeProfile(email = state.currentUser?.email) {
+  return traineeRoster().find((person) => person.email === String(email || "").toLowerCase()) || {
+    name: nameFromEmail(email),
+    email: String(email || "").toLowerCase(),
+    position: "",
+  };
 }
 
 function saveGoogleFormConfig() {
@@ -1090,6 +1138,8 @@ function buildGoogleFormPayload(record) {
     formTitle: record.title,
     month: record.month,
     product: record.product,
+    durationMinutes: state.settings.durationMinutes,
+    roster: traineeRoster(),
     questions: record.questions.map((question) => ({
       id: question.id,
       title: `${question.product} Q${question.number}`,
@@ -1097,7 +1147,9 @@ function buildGoogleFormPayload(record) {
       points: question.points,
     })),
     responses: record.submissions.map((submission) => ({
+      name: submission.name || traineeProfile(submission.email).name,
       email: submission.email,
+      position: submission.position || traineeProfile(submission.email).position,
       submittedAt: submission.submittedAt,
       duration: submission.durationFormatted,
       submitReason: submission.submitReason,
@@ -1523,12 +1575,15 @@ async function autoSubmitExpiredAttempt() {
 function saveSubmission(attempt) {
   const submittedQuestions = availableQuestions();
   const answered = submittedQuestions.filter((item) => (state.answers[item.id] || "").trim()).length;
+  const profile = traineeProfile(state.currentUser.email);
   const submissions = getSubmissions().filter(
     (item) => item.email !== state.currentUser.email || item.activeProduct !== state.settings.activeProduct,
   );
   const durationSeconds = elapsedSeconds(attempt.startedAt, attempt.submittedAt);
   const submission = {
+    name: profile.name,
     email: state.currentUser.email,
+    position: profile.position,
     role: state.currentUser.role,
     activeProduct: state.settings.activeProduct,
     startedAt: attempt.startedAt || "",

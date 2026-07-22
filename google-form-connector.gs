@@ -84,11 +84,11 @@ function createOrUpdateMonthlyForm(payload) {
   props.setProperty(key, form.getId());
   form.setTitle(payload.formTitle);
   form.setDescription(
-    'Created from Quiziz CS Reku export.' +
-      '\nProduct: ' + payload.product +
-      '\nMonth: ' + payload.month +
-      '\nQuestions: ' + (payload.questions || []).length +
-      '\nResponses imported: ' + (payload.responses || []).length
+    'Quiz bulanan ini dirancang untuk mengukur pemahaman dan keterampilan tim Customer Success dalam menjalankan tugas sehari-hari.' +
+      '\nPeserta memiliki waktu ' + (payload.durationMinutes || 90) + ' menit untuk menyelesaikan seluruh soal.' +
+      '\nQuiz ini bersifat open book, sehingga peserta diperbolehkan menggunakan materi atau referensi yang tersedia sebagai panduan dalam menjawab.' +
+      '\n\nProduct: ' + payload.product +
+      '\nMonth: ' + payload.month
   );
 
   try {
@@ -103,8 +103,15 @@ function createOrUpdateMonthlyForm(payload) {
     form.deleteItem(item);
   });
 
+  var roster = payload.roster || [];
+  var positionChoices = uniqueValues(roster.map(function(person) { return person.position; })).filter(Boolean);
+  var nameChoices = uniqueValues(roster.map(function(person) { return person.name; })).filter(Boolean);
+  if (!positionChoices.length) positionChoices = ['Customer Success Associate'];
+  if (!nameChoices.length) nameChoices = ['Name'];
+
   var emailItem = form.addTextItem().setTitle('Email').setRequired(true);
-  var metaItem = form.addParagraphTextItem().setTitle('Score, timing, and feedback notes');
+  var positionItem = form.addListItem().setTitle('Posisi').setChoiceValues(positionChoices);
+  var nameItem = form.addListItem().setTitle('Nama').setChoiceValues(nameChoices);
   var questionItems = (payload.questions || []).map(function(question) {
     var item = form
       .addParagraphTextItem()
@@ -121,15 +128,8 @@ function createOrUpdateMonthlyForm(payload) {
   (payload.responses || []).forEach(function(response) {
     var formResponse = form.createResponse();
     formResponse.withItemResponse(emailItem.createResponse(response.email || ''));
-    formResponse.withItemResponse(
-      metaItem.createResponse(
-        'Submitted: ' + (response.submittedAt || '') +
-          '\nDuration: ' + (response.duration || '') +
-          '\nReason: ' + (response.submitReason || '') +
-          '\nScore: ' + (response.score || '') +
-          '\nFeedback: ' + (response.feedback || '')
-      )
-    );
+    formResponse.withItemResponse(positionItem.createResponse(choiceOrDefault(response.position, positionChoices)));
+    formResponse.withItemResponse(nameItem.createResponse(choiceOrDefault(response.name, nameChoices)));
 
     (response.answers || []).forEach(function(answer, index) {
       if (questionItems[index]) {
@@ -150,6 +150,22 @@ function createOrUpdateMonthlyForm(payload) {
     title: form.getTitle(),
     shareStatus: shareStatus,
   };
+}
+
+function uniqueValues(values) {
+  var seen = {};
+  return (values || []).filter(function(value) {
+    var clean = String(value || '').trim();
+    if (!clean || seen[clean]) return false;
+    seen[clean] = true;
+    return true;
+  });
+}
+
+function choiceOrDefault(value, choices) {
+  var clean = String(value || '').trim();
+  if (clean && choices.indexOf(clean) !== -1) return clean;
+  return choices[0] || '';
 }
 
 function shareFormWithEditors(form) {
