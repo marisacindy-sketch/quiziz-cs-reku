@@ -333,9 +333,7 @@ function attemptStorageKey(product = state.settings.activeProduct) {
 
 function getAttempt(product = state.settings.activeProduct) {
   if (!state.currentUser) return null;
-  const productAttempt = JSON.parse(localStorage.getItem(attemptStorageKey(product)) || "null");
-  if (productAttempt) return productAttempt;
-  return arguments.length ? null : JSON.parse(localStorage.getItem(storageKey("attempt")) || "null");
+  return JSON.parse(localStorage.getItem(attemptStorageKey(product)) || "null");
 }
 
 function saveAttempt(attempt, product = state.settings.activeProduct) {
@@ -448,7 +446,7 @@ function getAccessState() {
   const open = now >= openAt && now <= closeAt;
   const attempt = getAttempt();
   const submitted = Boolean(attempt?.submittedAt || getSubmission(state.currentUser?.email, state.settings.activeProduct));
-  const started = Boolean(attempt?.startedAt && !submitted);
+  const started = Boolean(attempt?.startedByUser && attempt?.startedAt && !submitted);
   const paused = Boolean(attempt?.pausedAt && attempt?.pausedRemainingMs);
   const endsAt = paused
     ? new Date(now.getTime() + Number(attempt.pausedRemainingMs))
@@ -465,14 +463,17 @@ function startWeeklyProduct(product = state.settings.activeProduct) {
   if (!access.open || isOwner()) return;
   if (product !== state.settings.activeProduct) return;
   if (getSubmission(state.currentUser.email, product)) return;
-  if (getAttempt(product)?.startedAt) {
+  if (getAttempt(product)?.startedByUser && getAttempt(product)?.startedAt) {
     renderAccess();
     updateTimer();
     return;
   }
   const now = new Date();
   const endsAt = new Date(now.getTime() + Number(state.settings.durationMinutes) * 60 * 1000);
-  saveAttempt({ startedAt: now.toISOString(), endsAt: endsAt.toISOString(), submittedAt: null }, product);
+  saveAttempt(
+    { startedByUser: true, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), submittedAt: null },
+    product,
+  );
   state.product = product;
   renderAccess();
   renderStats();
@@ -558,7 +559,7 @@ function productLaunchState(product, access = getAccessState()) {
   const completed = Boolean(productCompletion(product));
   const active = product === state.settings.activeProduct;
   const attempt = getAttempt(product);
-  const started = Boolean(active && attempt?.startedAt && !completed);
+  const started = Boolean(active && attempt?.startedByUser && attempt?.startedAt && !completed);
   if (completed) {
     return { active, completed, started: false, buttonText: "Completed", disabled: true, tone: "completed" };
   }
