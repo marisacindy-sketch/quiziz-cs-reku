@@ -159,11 +159,23 @@ function storageKey(suffix) {
 
 function loadUserState() {
   if (!state.currentUser) return;
+  purgeLegacyAttempts();
   state.answers = JSON.parse(localStorage.getItem(storageKey("answers")) || "{}");
 }
 
 function saveAnswers() {
   localStorage.setItem(storageKey("answers"), JSON.stringify(state.answers));
+}
+
+function purgeLegacyAttempts() {
+  localStorage.removeItem(storageKey("attempt"));
+  PRODUCT_ORDER.forEach((product) => {
+    const key = attemptStorageKey(product);
+    const attempt = JSON.parse(localStorage.getItem(key) || "null");
+    if (attempt && !attempt.startedByUser && !attempt.submittedAt) {
+      localStorage.removeItem(key);
+    }
+  });
 }
 
 function saveSettings() {
@@ -593,7 +605,7 @@ function renderProductLauncher(access = getAccessState()) {
   }
 
   const activeAttempt = getAttempt(state.settings.activeProduct);
-  const showLauncher = !access.allowed || !activeAttempt?.startedAt;
+  const showLauncher = !access.allowed || !activeAttempt?.startedByUser;
   els.productLauncher.hidden = !showLauncher;
   els.productLauncherHint.textContent = access.open
     ? "Timer starts only after you press Start."
