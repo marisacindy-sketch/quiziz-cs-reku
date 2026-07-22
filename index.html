@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=37" />
+    <link rel="stylesheet" href="styles.css?v=38" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -621,12 +621,12 @@
               <input
                 id="googleConnectorUrl"
                 type="url"
-                placeholder="Paste Apps Script web app URL here"
+                placeholder="https://script.google.com/macros/s/.../exec"
               />
             </label>
             <div class="connector-note">
               <span>One-time setup</span>
-              <strong>Paste connector URL once, then create forms from here.</strong>
+              <strong>Paste the deployed Web App URL, not the script code.</strong>
             </div>
             <input id="googleFormEnabled" type="hidden" value="on" />
           </div>
@@ -647,9 +647,9 @@
           <div class="history-list" id="exportHistoryList"></div>
 
           <div class="export-divider"></div>
-          <h3>Backup downloads</h3>
+          <h3>Optional backup downloads</h3>
           <div class="export-actions">
-            <button id="exportResponses" type="button">Export responses CSV</button>
+            <button id="exportResponses" type="button">Backup responses CSV</button>
             <button id="exportQuestions" class="secondary" type="button">Export question template</button>
           </div>
           <p class="helper-text" id="exportStatus">No export yet.</p>
@@ -659,7 +659,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=37"></script>
-    <script src="app.js?v=37"></script>
+    <script src="quiz-data.js?v=38"></script>
+    <script src="app.js?v=38"></script>
   </body>
 </html>
