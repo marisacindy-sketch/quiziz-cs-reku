@@ -131,6 +131,9 @@ const els = {
   metricPending: document.querySelector("#metricPending"),
   metricAverageDuration: document.querySelector("#metricAverageDuration"),
   metricAutoSubmit: document.querySelector("#metricAutoSubmit"),
+  responsesMonth: document.querySelector("#responsesMonth"),
+  responsesYear: document.querySelector("#responsesYear"),
+  responsesProduct: document.querySelector("#responsesProduct"),
   submissionTableBody: document.querySelector("#submissionTableBody"),
   responseViewer: document.querySelector("#responseViewer"),
   responseViewerTitle: document.querySelector("#responseViewerTitle"),
@@ -399,6 +402,20 @@ function monthLabel(value) {
     year: "numeric",
     timeZone: "Asia/Jakarta",
   }).format(new Date(year, month - 1, 1));
+}
+
+function monthOptions() {
+  return Array.from({ length: 12 }, (_, index) => ({
+    value: String(index + 1).padStart(2, "0"),
+    label: new Intl.DateTimeFormat("en-US", { month: "long" }).format(new Date(2026, index, 1)),
+  }));
+}
+
+function responseYears() {
+  const years = getSubmissions()
+    .map((submission) => String(submission.submittedAt || "").slice(0, 4))
+    .filter(Boolean);
+  return [...new Set([String(new Date().getFullYear()), ...years])].sort((a, b) => Number(b) - Number(a));
 }
 
 function slugify(value) {
@@ -1121,15 +1138,26 @@ function renderExportHistory() {
     .join("");
 }
 
-function renderResponseViewer(email) {
+function responseKey(email, product) {
+  return `${email}__${slugify(product)}`;
+}
+
+function parseResponseKey(key) {
+  const [email, productSlug] = String(key || "").split("__");
+  const product = PRODUCT_ORDER.find((item) => slugify(item) === productSlug) || state.settings.activeProduct;
+  return { email, product };
+}
+
+function renderResponseViewer(key) {
   if (!isOwner()) return;
-  const submission = getSubmission(email);
+  const { email, product: requestedProduct } = parseResponseKey(key);
+  const submission = getSubmission(email, requestedProduct);
   if (!submission) {
     state.openResponseEmail = "";
     els.responseViewer.hidden = true;
     return;
   }
-  state.openResponseEmail = email;
+  state.openResponseEmail = key;
   const product = submission.activeProduct || state.settings.activeProduct;
   const questions = questionsForProduct(product);
   els.responseViewer.hidden = false;
@@ -1274,8 +1302,36 @@ function renderAnswerHistory() {
 
 function renderOwnerDashboard() {
   if (!isOwner()) return;
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, "0");
+  const currentYear = String(new Date().getFullYear());
+  if (!els.responsesMonth.value) els.responsesMonth.value = currentMonth;
+  if (!els.responsesYear.value) els.responsesYear.value = currentYear;
+  if (!els.responsesProduct.value) els.responsesProduct.value = state.settings.activeProduct;
+
+  els.responsesMonth.innerHTML = monthOptions()
+    .map(
+      (month) =>
+        `<option value="${escapeHtml(month.value)}" ${
+          els.responsesMonth.value === month.value ? "selected" : ""
+        }>${escapeHtml(month.label)}</option>`,
+    )
+    .join("");
+  els.responsesYear.innerHTML = responseYears()
+    .map(
+      (year) =>
+        `<option value="${escapeHtml(year)}" ${els.responsesYear.value === year ? "selected" : ""}>${escapeHtml(
+          year,
+        )}</option>`,
+    )
+    .join("");
+
+  const selectedMonth = els.responsesMonth.value || currentMonth;
+  const selectedYear = els.responsesYear.value || currentYear;
+  const selectedProduct = els.responsesProduct.value || state.settings.activeProduct;
+  const selectedPeriod = `${selectedYear}-${selectedMonth}`;
   const submissions = getSubmissions()
-    .filter((submission) => (submission.activeProduct || state.settings.activeProduct) === state.settings.activeProduct)
+    .filter((submission) => (submission.activeProduct || selectedProduct) === selectedProduct)
+    .filter((submission) => String(submission.submittedAt || "").slice(0, 7) === selectedPeriod)
     .sort(
     (a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0),
   );
@@ -1286,7 +1342,7 @@ function renderOwnerDashboard() {
   const averageSeconds = submissions.length ? Math.round(totalSeconds / submissions.length) : 0;
   const autoSubmitCount = submissions.filter((submission) => submission.submitReason === "auto_time_expired").length;
   const activeProductTotal = state.questions.filter(
-    (question) => question.product === state.settings.activeProduct,
+    (question) => question.product === selectedProduct,
   ).length;
 
   els.metricSubmitted.textContent = String(submissions.length);
@@ -1295,29 +1351,18 @@ function renderOwnerDashboard() {
   els.metricAutoSubmit.textContent = String(autoSubmitCount);
 
   const submittedRows = submissions.map((submission) => {
-    const score = submission.reviewScore ?? "";
-    const feedback = submission.reviewFeedback ?? "";
-    const maxScore = Number(submission.totalQuestions || 40) * 10;
+    const rowProduct = submission.activeProduct || selectedProduct;
+    const rowKey = responseKey(submission.email, rowProduct);
     return `
       <tr>
         <td>${escapeHtml(submission.email)}</td>
+        <td>${escapeHtml(rowProduct)}</td>
         <td><span class="status-label submitted">Submitted</span></td>
         <td>${escapeHtml(submission.durationFormatted || formatDuration(submission.durationSeconds))}</td>
-        <td>${escapeHtml(submission.submitReason || "manual")}</td>
         <td>${escapeHtml(submission.answered)}/${escapeHtml(submission.totalQuestions)}</td>
-        <td>${escapeHtml(submission.googleFormStatus || "not_configured")}</td>
         <td>
-          <input class="score-input" data-review-score type="number" min="0" max="${escapeHtml(maxScore)}" step="1" value="${escapeHtml(score)}" />
-        </td>
-        <td>
-          <textarea class="mini-textarea" data-review-feedback placeholder="Private review note">${escapeHtml(feedback)}</textarea>
-        </td>
-        <td>
-          <button class="secondary compact" type="button" data-review-email="${escapeHtml(submission.email)}">Save</button>
-        </td>
-        <td>
-          <button class="compact" type="button" data-view-response="${escapeHtml(submission.email)}">${
-            state.openResponseEmail === submission.email ? "Hide answers" : "View answers"
+          <button class="compact" type="button" data-view-response="${escapeHtml(rowKey)}">${
+            state.openResponseEmail === rowKey ? "Hide answers" : "View answers"
           }</button>
         </td>
       </tr>
@@ -1328,14 +1373,10 @@ function renderOwnerDashboard() {
     (email) => `
       <tr>
         <td>${escapeHtml(email)}</td>
+        <td>${escapeHtml(selectedProduct)}</td>
         <td><span class="status-label pending">Pending</span></td>
         <td>-</td>
-        <td>-</td>
         <td>0/${activeProductTotal}</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td></td>
         <td></td>
       </tr>
     `,
@@ -1343,7 +1384,7 @@ function renderOwnerDashboard() {
 
   els.submissionTableBody.innerHTML =
     submittedRows.concat(pendingRows).join("") ||
-    `<tr><td colspan="10" class="empty-cell">No submissions yet.</td></tr>`;
+    `<tr><td colspan="6" class="empty-cell">No submissions yet.</td></tr>`;
   els.responseViewer.hidden = true;
   state.openResponseEmail = "";
   els.responseDetailList.innerHTML = "";
@@ -2023,31 +2064,24 @@ function initEvents() {
   els.submissionTableBody.addEventListener("click", (event) => {
     const viewButton = event.target.closest("button[data-view-response]");
     if (viewButton) {
-      const email = viewButton.dataset.viewResponse;
-      if (state.openResponseEmail === email && !els.responseViewer.hidden) {
+      const key = viewButton.dataset.viewResponse;
+      if (state.openResponseEmail === key && !els.responseViewer.hidden) {
         state.openResponseEmail = "";
         els.responseViewer.hidden = true;
         els.responseDetailList.innerHTML = "";
         viewButton.textContent = "View answers";
         return;
       }
-      renderResponseViewer(email);
+      renderResponseViewer(key);
       els.submissionTableBody.querySelectorAll("[data-view-response]").forEach((button) => {
-        button.textContent = button.dataset.viewResponse === email ? "Hide answers" : "View answers";
+        button.textContent = button.dataset.viewResponse === key ? "Hide answers" : "View answers";
       });
       return;
     }
-    const button = event.target.closest("button[data-review-email]");
-    if (!button) return;
-    const row = button.closest("tr");
-    const score = row.querySelector("[data-review-score]")?.value.trim() || "";
-    const feedback = row.querySelector("[data-review-feedback]")?.value.trim() || "";
-    saveSubmissionReview(button.dataset.reviewEmail, score, feedback);
-    button.textContent = "Saved";
-    window.setTimeout(() => {
-      button.textContent = "Save";
-    }, 1000);
   });
+  els.responsesMonth.addEventListener("change", renderOwnerDashboard);
+  els.responsesYear.addEventListener("change", renderOwnerDashboard);
+  els.responsesProduct.addEventListener("change", renderOwnerDashboard);
   els.saveGoogleFormConfig.addEventListener("click", saveGoogleFormConfigFromForm);
   els.exportMonthlyForm.addEventListener("click", exportMonthlyGoogleForm);
   els.downloadConnectorGuide.addEventListener("click", downloadConnectorScript);

@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=43" />
+    <link rel="stylesheet" href="styles.css?v=44" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -539,6 +539,25 @@
             <h3>Team snapshot</h3>
             <span>Submissions, timing, and review</span>
           </div>
+          <div class="responses-filter-grid" aria-label="Response filters">
+            <label>
+              <span>Month</span>
+              <select id="responsesMonth"></select>
+            </label>
+            <label>
+              <span>Year</span>
+              <select id="responsesYear"></select>
+            </label>
+            <label>
+              <span>Product</span>
+              <select id="responsesProduct">
+                <option value="General">General</option>
+                <option value="Kripto Spot">Kripto Spot</option>
+                <option value="US Stock">US Stock</option>
+                <option value="Perpetuals">Perpetuals</option>
+              </select>
+            </label>
+          </div>
           <div class="owner-metrics">
             <article>
               <span>Submitted</span>
@@ -562,14 +581,10 @@
               <thead>
                 <tr>
                   <th>Email</th>
+                  <th>Product</th>
                   <th>Status</th>
                   <th>Duration</th>
-                  <th>Reason</th>
                   <th>Answered</th>
-                  <th>Form</th>
-                  <th>Score</th>
-                  <th>Feedback</th>
-                  <th></th>
                   <th></th>
                 </tr>
               </thead>
@@ -678,7 +693,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=43"></script>
-    <script src="app.js?v=43"></script>
+    <script src="quiz-data.js?v=44"></script>
+    <script src="app.js?v=44"></script>
   </body>
 </html>

@@ -1673,6 +1673,23 @@ h3 {
   gap: 8px;
 }
 
+.responses-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.responses-filter-grid label {
+  display: grid;
+  gap: 6px;
+}
+
+.responses-filter-grid span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 760;
+}
+
 .owner-metrics article {
   padding: 11px;
   border: 1px solid var(--line);
@@ -2140,6 +2157,7 @@ h3 {
   .summary-grid,
   .product-launcher-grid,
   .owner-metrics,
+  .responses-filter-grid,
   .google-form-grid,
   .history-filter-grid,
   .form-grid {
