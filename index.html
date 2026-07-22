@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=38" />
+    <link rel="stylesheet" href="styles.css?v=39" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -397,27 +397,14 @@
                 <span>Question text</span>
                 <textarea id="editQuestionText" placeholder="Edit the Indonesian question text..."></textarea>
               </label>
-              <label>
-                <span>Answer key</span>
-                <textarea id="editAnswerText" placeholder="Edit the Indonesian answer key..."></textarea>
-              </label>
               <button id="saveQuestionEdit" class="secondary" type="button">Save this question</button>
             </section>
 
             <div class="action-row">
               <button id="saveAnswer" type="button">Save draft</button>
-              <button id="toggleKey" class="secondary" type="button">Show answer key</button>
               <button id="nextQuestion" class="ghost" type="button">Next case</button>
               <button id="submitQuiz" class="danger" type="button">Lock my answers</button>
             </div>
-
-            <section class="answer-key" id="answerKey" hidden>
-              <div class="section-heading">
-                <h3>Answer key</h3>
-                <span>10-point rubric</span>
-              </div>
-              <p id="answerText"></p>
-            </section>
           </section>
         </section>
 
@@ -507,14 +494,6 @@
             <label>
               <span>Working duration</span>
               <input id="durationMinutes" type="number" min="10" max="480" step="5" />
-            </label>
-            <label>
-              <span>Answer key visibility</span>
-              <select id="answerKeyMode">
-                <option value="owner">Owner only</option>
-                <option value="after-submit">After submit</option>
-                <option value="always">Everyone can view</option>
-              </select>
             </label>
             <label>
               <span>This week’s product</span>
@@ -659,7 +638,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=38"></script>
-    <script src="app.js?v=38"></script>
+    <script src="quiz-data.js?v=39"></script>
+    <script src="app.js?v=39"></script>
   </body>
 </html>

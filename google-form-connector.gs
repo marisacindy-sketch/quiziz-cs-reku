@@ -59,8 +59,8 @@ function createOrUpdateMonthlyForm(payload) {
   var questionItems = (payload.questions || []).map(function(question) {
     var item = form
       .addParagraphTextItem()
-      .setTitle(question.title + ' - ' + question.question)
-      .setHelpText('Answer key: ' + (question.answerKey || ''));
+      .setTitle(question.title)
+      .setHelpText(question.question || '');
 
     try {
       item.setPoints(Number(question.points || 10));

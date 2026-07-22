@@ -71,7 +71,6 @@ const els = {
   closeDay: document.querySelector("#closeDay"),
   closeTime: document.querySelector("#closeTime"),
   durationMinutes: document.querySelector("#durationMinutes"),
-  answerKeyMode: document.querySelector("#answerKeyMode"),
   activeProductSetting: document.querySelector("#activeProductSetting"),
   expectedEmails: document.querySelector("#expectedEmails"),
   timerChip: document.querySelector("#timerChip"),
@@ -112,14 +111,10 @@ const els = {
   questionText: document.querySelector("#questionText"),
   userAnswer: document.querySelector("#userAnswer"),
   saveAnswer: document.querySelector("#saveAnswer"),
-  toggleKey: document.querySelector("#toggleKey"),
   nextQuestion: document.querySelector("#nextQuestion"),
   submitQuiz: document.querySelector("#submitQuiz"),
-  answerKey: document.querySelector("#answerKey"),
-  answerText: document.querySelector("#answerText"),
   ownerEditor: document.querySelector("#ownerEditor"),
   editQuestionText: document.querySelector("#editQuestionText"),
-  editAnswerText: document.querySelector("#editAnswerText"),
   saveQuestionEdit: document.querySelector("#saveQuestionEdit"),
   settingsSavedText: document.querySelector("#settingsSavedText"),
   metricSubmitted: document.querySelector("#metricSubmitted"),
@@ -525,15 +520,6 @@ function renderTraineeForm() {
   renderStats();
 }
 
-function canShowAnswerKey() {
-  const access = getAccessState();
-  return (
-    isOwner() ||
-    state.settings.answerKeyMode === "always" ||
-    (state.settings.answerKeyMode === "after-submit" && access.submitted)
-  );
-}
-
 function setActiveQuestion(id) {
   const questions = availableQuestions();
   const question = questions.find((item) => item.id === id) || filteredQuestions()[0] || questions[0];
@@ -547,13 +533,8 @@ function setActiveQuestion(id) {
   els.caseType.textContent = inferCaseType(question.question);
   els.questionText.textContent = question.question;
   els.userAnswer.value = state.answers[question.id] || "";
-  els.answerText.textContent = question.answer;
-  els.answerKey.hidden = true;
-  els.toggleKey.textContent = "Show answer key";
-  els.toggleKey.hidden = !canShowAnswerKey();
   els.ownerEditor.hidden = !isOwner();
   els.editQuestionText.value = question.question;
-  els.editAnswerText.value = question.answer;
   renderQuestionList();
 }
 
@@ -779,7 +760,6 @@ function fillSettingsForm() {
   els.closeDay.value = String(state.settings.closeDay);
   els.closeTime.value = state.settings.closeTime;
   els.durationMinutes.value = state.settings.durationMinutes;
-  els.answerKeyMode.value = state.settings.answerKeyMode;
   els.activeProductSetting.value = state.settings.activeProduct;
   els.expectedEmails.value = state.settings.expectedEmails || "";
   fillGoogleFormConfig();
@@ -832,7 +812,6 @@ function buildExportRecord(month, product) {
     product: question.product,
     number: question.number,
     question: question.question,
-    answerKey: question.answer,
     points: question.points,
   }));
   const submissions = submissionsForExport(month, product).map((submission) => ({
@@ -885,7 +864,6 @@ function buildGoogleFormPayload(record) {
       id: question.id,
       title: `${question.product} Q${question.number}`,
       question: question.question,
-      answerKey: question.answerKey,
       points: question.points,
     })),
     responses: record.submissions.map((submission) => ({
@@ -968,10 +946,6 @@ function renderResponseViewer(email) {
             <span>Friend’s answer</span>
             <p>${escapeHtml(answer || "No answer submitted.")}</p>
           </div>
-          <details class="response-key">
-            <summary>Answer key</summary>
-            <p>${escapeHtml(question.answer)}</p>
-          </details>
         </article>
       `;
     })
@@ -1537,13 +1511,12 @@ async function downloadConnectorScript() {
 function exportQuestionTemplateCsv() {
   if (!isOwner()) return;
   const rows = [
-    ["Question ID", "Product", "Question Number", "Question Text", "Answer Key", "Points"],
+    ["Question ID", "Product", "Question Number", "Question Text", "Points"],
     ...state.questions.map((question) => [
       question.id,
       question.product,
       question.number,
       question.question,
-      question.answer,
       question.points,
     ]),
   ];
@@ -1569,7 +1542,6 @@ function saveQuestionEdit() {
   state.questions[index] = {
     ...state.questions[index],
     question: els.editQuestionText.value.trim(),
-    answer: els.editAnswerText.value.trim(),
   };
   saveQuestions();
   renderStats();
@@ -1635,7 +1607,7 @@ function initEvents() {
       closeDay: Number(els.closeDay.value),
       closeTime: els.closeTime.value,
       durationMinutes: Number(els.durationMinutes.value),
-      answerKeyMode: els.answerKeyMode.value,
+      answerKeyMode: "owner",
       activeProduct: els.activeProductSetting.value,
       expectedEmails: els.expectedEmails.value.trim(),
     };
@@ -1701,12 +1673,6 @@ function initEvents() {
     state.answers[field.dataset.formAnswer] = field.value;
     saveAnswers();
     renderStats();
-  });
-
-  els.toggleKey.addEventListener("click", () => {
-    if (!canShowAnswerKey()) return;
-    els.answerKey.hidden = !els.answerKey.hidden;
-    els.toggleKey.textContent = els.answerKey.hidden ? "Show answer key" : "Hide answer key";
   });
 
   els.nextQuestion.addEventListener("click", () => {
