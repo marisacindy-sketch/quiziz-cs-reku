@@ -1,5 +1,7 @@
 const OWNER_EMAIL = "marisa@reku.id";
 const OWNER_PASSWORD = "owner123";
+const DEFAULT_CONNECTOR_URL =
+  "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec";
 
 const defaultSettings = {
   openDay: 5,
@@ -14,7 +16,7 @@ const defaultSettings = {
 
 const defaultGoogleFormConfig = {
   enabled: true,
-  connectorUrl: "",
+  connectorUrl: DEFAULT_CONNECTOR_URL,
 };
 
 const state = {
@@ -39,8 +41,8 @@ function normalizeStoredSettings() {
 }
 
 function normalizeGoogleFormConfig(config) {
-  const rawConnectorUrl = config?.connectorUrl || config?.actionUrl || "";
-  const connectorUrl = isValidConnectorUrl(rawConnectorUrl) ? rawConnectorUrl : "";
+  const rawConnectorUrl = config?.connectorUrl || config?.actionUrl || DEFAULT_CONNECTOR_URL;
+  const connectorUrl = isValidConnectorUrl(rawConnectorUrl) ? rawConnectorUrl : DEFAULT_CONNECTOR_URL;
   return {
     ...defaultGoogleFormConfig,
     ...(config || {}),
@@ -98,6 +100,9 @@ const els = {
   traineeSubmitQuiz: document.querySelector("#traineeSubmitQuiz"),
   answeredCount: document.querySelector("#answeredCount"),
   questionCount: document.querySelector("#questionCount"),
+  productSummaryLabel: document.querySelector("#productSummaryLabel"),
+  productSummaryValue: document.querySelector("#productSummaryValue"),
+  productSummaryCopy: document.querySelector("#productSummaryCopy"),
   totalQuestions: document.querySelector("#totalQuestions"),
   totalPoints: document.querySelector("#totalPoints"),
   productFilter: document.querySelector("#productFilter"),
@@ -191,6 +196,69 @@ function expectedEmailList() {
 function saveGoogleFormConfig() {
   state.googleForm = normalizeGoogleFormConfig(state.googleForm);
   localStorage.setItem("quiziz-google-form-config", JSON.stringify(state.googleForm));
+}
+
+function activeConnectorUrl() {
+  return state.googleForm.connectorUrl || DEFAULT_CONNECTOR_URL;
+}
+
+function loadRemoteSettings() {
+  const url = activeConnectorUrl();
+  if (!isValidConnectorUrl(url)) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const callbackName = `quizizSettings_${Date.now()}_${Math.round(Math.random() * 10000)}`;
+    const script = document.createElement("script");
+    const cleanup = () => {
+      delete window[callbackName];
+      script.remove();
+    };
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      resolve(false);
+    }, 2500);
+
+    window[callbackName] = (payload) => {
+      window.clearTimeout(timeout);
+      cleanup();
+      if (payload?.ok && payload.settings) {
+        state.settings = normalizeSettings({ ...state.settings, ...payload.settings });
+        saveSettings();
+        resolve(true);
+        return;
+      }
+      resolve(false);
+    };
+
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      cleanup();
+      resolve(false);
+    };
+    script.src = `${url}?action=get_settings&callback=${encodeURIComponent(callbackName)}`;
+    document.head.appendChild(script);
+  });
+}
+
+function publishRemoteSettings() {
+  const url = activeConnectorUrl();
+  if (!isValidConnectorUrl(url)) return;
+  fetch(url, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "save_settings",
+      settings: {
+        openDay: state.settings.openDay,
+        openTime: state.settings.openTime,
+        closeDay: state.settings.closeDay,
+        closeTime: state.settings.closeTime,
+        durationMinutes: state.settings.durationMinutes,
+        activeProduct: state.settings.activeProduct,
+        expectedEmails: state.settings.expectedEmails,
+      },
+    }),
+  }).catch(() => {});
 }
 
 function getTraineePasswordStore() {
@@ -438,6 +506,15 @@ function renderStats() {
   const questions = availableQuestions();
   const answered = questions.filter((item) => (state.answers[item.id] || "").trim()).length;
   const points = questions.reduce((sum, item) => sum + item.points, 0);
+  if (isOwner()) {
+    els.productSummaryLabel.textContent = "Products";
+    els.productSummaryValue.textContent = "4";
+    els.productSummaryCopy.textContent = "General, Spot, US Stock, Perpetuals";
+  } else {
+    els.productSummaryLabel.textContent = "This week";
+    els.productSummaryValue.textContent = state.settings.activeProduct;
+    els.productSummaryCopy.textContent = "Only this product is open for trainees";
+  }
   els.answeredCount.textContent = answered;
   els.questionCount.textContent = questions.length;
   els.totalQuestions.textContent = questions.length;
@@ -1720,6 +1797,7 @@ function initEvents() {
     };
     state.settings = normalizeSettings(state.settings);
     saveSettings();
+    publishRemoteSettings();
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
@@ -1858,6 +1936,7 @@ async function boot() {
   if (Array.isArray(ownerQuestions) && ownerQuestions.length) {
     state.questions = ownerQuestions;
   }
+  await loadRemoteSettings();
   initEvents();
   if (state.currentUser) showApp();
 }

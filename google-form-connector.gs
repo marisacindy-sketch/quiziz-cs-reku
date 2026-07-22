@@ -1,6 +1,11 @@
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
+var SETTINGS_KEY = 'quiziz-weekly-settings';
 
-function doGet() {
+function doGet(e) {
+  if (e.parameter && e.parameter.action === 'get_settings') {
+    return settingsResponse(e.parameter.callback);
+  }
+
   return HtmlService.createHtmlOutput(
     '<p>Quiziz CS Reku connector is live. Copy this web app URL into the Quiziz Google Form connector field.</p>'
   );
@@ -8,6 +13,11 @@ function doGet() {
 
 function doPost(e) {
   var payload = parsePayload(e);
+  if (payload.action === 'save_settings') {
+    var settingsResult = saveWeeklySettings(payload.settings || {});
+    return jsonResponse(settingsResult);
+  }
+
   if (payload.action !== 'create_or_update_monthly_form') {
     return jsonResponse({ ok: false, error: 'Unsupported action.' });
   }
@@ -24,6 +34,45 @@ function parsePayload(e) {
     return JSON.parse(e.parameter.payload);
   }
   return JSON.parse((e.postData && e.postData.contents) || '{}');
+}
+
+function defaultWeeklySettings() {
+  return {
+    openDay: 5,
+    openTime: '13:00',
+    closeDay: 0,
+    closeTime: '23:59',
+    durationMinutes: 90,
+    activeProduct: 'General',
+    expectedEmails: '',
+  };
+}
+
+function getWeeklySettings() {
+  var raw = PropertiesService.getUserProperties().getProperty(SETTINGS_KEY);
+  if (!raw) return defaultWeeklySettings();
+  try {
+    return Object.assign(defaultWeeklySettings(), JSON.parse(raw));
+  } catch (error) {
+    return defaultWeeklySettings();
+  }
+}
+
+function saveWeeklySettings(settings) {
+  var next = Object.assign(defaultWeeklySettings(), settings || {});
+  next.updatedAt = new Date().toISOString();
+  PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(next));
+  return { ok: true, settings: next };
+}
+
+function settingsResponse(callback) {
+  var payload = { ok: true, settings: getWeeklySettings() };
+  if (callback) {
+    return ContentService
+      .createTextOutput(String(callback) + '(' + JSON.stringify(payload) + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonResponse(payload);
 }
 
 function createOrUpdateMonthlyForm(payload) {

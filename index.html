@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=41" />
+    <link rel="stylesheet" href="styles.css?v=42" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -327,9 +327,9 @@
 
         <section class="summary-grid" aria-label="Quiz summary">
           <article>
-            <span>Products</span>
-            <strong>4</strong>
-            <small>General, Spot, US Stock, Perpetuals</small>
+            <span id="productSummaryLabel">Products</span>
+            <strong id="productSummaryValue">4</strong>
+            <small id="productSummaryCopy">General, Spot, US Stock, Perpetuals</small>
           </article>
           <article>
             <span>Total Questions</span>
@@ -504,6 +504,7 @@
                 <option value="US Stock">US Stock</option>
                 <option value="Perpetuals">Perpetuals</option>
               </select>
+              <small>Trainees will only see this product after you save.</small>
             </label>
             <label class="form-wide access-list-card">
               <span>Access list</span>
@@ -666,7 +667,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=41"></script>
-    <script src="app.js?v=41"></script>
+    <script src="quiz-data.js?v=42"></script>
+    <script src="app.js?v=42"></script>
   </body>
 </html>
