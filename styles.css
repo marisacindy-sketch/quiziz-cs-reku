@@ -427,9 +427,10 @@ label span,
   position: sticky;
   top: 16px;
   display: grid;
-  gap: 18px;
+  gap: 12px;
+  align-content: start;
   min-height: calc(100vh - 32px);
-  padding: 15px;
+  padding: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   color: rgba(255, 255, 255, 0.88);
@@ -443,7 +444,7 @@ label span,
   display: flex;
   gap: 10px;
   align-items: center;
-  padding-bottom: 14px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -466,7 +467,7 @@ label span,
 
 .sidebar-brand strong {
   font-size: 0.92rem;
-  font-weight: 680;
+  font-weight: 620;
 }
 
 .sidebar-brand span,
@@ -474,13 +475,14 @@ label span,
 .sidebar-nav span {
   color: rgba(255, 255, 255, 0.52);
   font-size: 0.68rem;
-  font-weight: 620;
+  font-weight: 560;
 }
 
 .sidebar-user {
   display: grid;
   gap: 4px;
-  padding: 12px;
+  padding: 11px;
+  min-height: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
@@ -489,16 +491,17 @@ label span,
 .sidebar-user span {
   overflow-wrap: anywhere;
   font-size: 0.78rem;
-  font-weight: 620;
+  font-weight: 560;
 }
 
 .sidebar-nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  align-content: start;
 }
 
 .sidebar-nav > span {
-  margin: 8px 4px 2px;
+  margin: 6px 4px 1px;
   color: rgba(255, 255, 255, 0.42);
   text-transform: uppercase;
 }
@@ -506,13 +509,13 @@ label span,
 .sidebar-link {
   width: 100%;
   justify-content: flex-start;
-  min-height: 38px;
+  min-height: 34px;
   border-radius: 10px;
   color: rgba(255, 255, 255, 0.74);
   background: transparent;
   text-align: left;
   font-size: 0.82rem;
-  font-weight: 620;
+  font-weight: 560;
 }
 
 .sidebar-link.active,
@@ -523,8 +526,8 @@ label span,
 
 .settings-submenu {
   display: grid;
-  gap: 6px;
-  margin: -3px 0 4px 12px;
+  gap: 5px;
+  margin: -2px 0 3px 12px;
   padding-left: 11px;
   border-left: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -532,7 +535,7 @@ label span,
 .settings-subitem {
   width: 100%;
   justify-content: flex-start;
-  min-height: 32px;
+  min-height: 30px;
   border-radius: 9px;
   color: rgba(255, 255, 255, 0.58);
   background: transparent;
@@ -548,7 +551,7 @@ label span,
 }
 
 .logout-link {
-  margin-top: 4px;
+  margin-top: 2px;
   color: #ffbec8;
 }
 
@@ -1208,6 +1211,7 @@ h3 {
   min-height: 31px;
   padding: 0 10px;
   font-size: 0.82rem;
+  font-weight: 560;
   color: var(--muted);
   background: #eef3f7;
   border: 1px solid transparent;
@@ -1216,6 +1220,7 @@ h3 {
 
 .tab-button.active {
   color: #fff;
+  font-weight: 580;
   background: linear-gradient(135deg, var(--dark), #295179);
 }
 
@@ -1261,18 +1266,20 @@ h3 {
   color: #fff;
   background: var(--blue);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .question-item strong {
   display: block;
   margin-bottom: 3px;
   font-size: 0.86rem;
+  font-weight: 560;
 }
 
 .question-item small {
   color: var(--muted);
   font-size: 0.78rem;
+  font-weight: 480;
   line-height: 1.35;
 }
 
