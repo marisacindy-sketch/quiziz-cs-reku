@@ -138,6 +138,9 @@ const els = {
   downloadConnectorGuide: document.querySelector("#downloadConnectorGuide"),
   exportHistoryList: document.querySelector("#exportHistoryList"),
   googleFormStatus: document.querySelector("#googleFormStatus"),
+  historyMonth: document.querySelector("#historyMonth"),
+  historyProduct: document.querySelector("#historyProduct"),
+  answerHistoryList: document.querySelector("#answerHistoryList"),
 };
 
 function storageKey(suffix) {
@@ -226,6 +229,7 @@ function showSettingsPanel(panelName = "quizControlsPanel") {
   const panelTitles = {
     quizControlsPanel: "Quiz controls",
     responsesPanel: "Responses",
+    answerHistoryPanel: "History",
     exportPanel: "Google Form",
   };
   document.querySelectorAll("[data-settings-section]").forEach((section) => {
@@ -235,6 +239,7 @@ function showSettingsPanel(panelName = "quizControlsPanel") {
     button.classList.toggle("active", button.dataset.settingsPanel === panelName);
   });
   document.querySelector(".settings-card .drawer-head h2").textContent = panelTitles[panelName] || "Settings";
+  if (panelName === "answerHistoryPanel") renderAnswerHistory();
 }
 
 function showAppView(view = "quiz") {
@@ -764,6 +769,7 @@ function fillSettingsForm() {
   els.expectedEmails.value = state.settings.expectedEmails || "";
   fillGoogleFormConfig();
   renderOwnerDashboard();
+  renderAnswerHistory();
 }
 
 function fillGoogleFormConfig() {
@@ -852,6 +858,7 @@ function upsertExportHistory(record) {
   );
   saveExportHistory(next);
   renderExportHistory();
+  renderAnswerHistory();
 }
 
 function buildGoogleFormPayload(record) {
@@ -963,6 +970,102 @@ function renderResponseViewer(email) {
   `;
 }
 
+function answerHistoryProductOptions() {
+  return ["General", "Kripto Spot", "US Stock", "Perpetuals"];
+}
+
+function renderAnswerHistory() {
+  if (!isOwner() || !els.answerHistoryList) return;
+  els.historyMonth.value = els.historyMonth.value || currentMonthValue();
+  els.historyProduct.value = els.historyProduct.value || "all";
+
+  const month = els.historyMonth.value;
+  const product = els.historyProduct.value;
+  const submissions = getSubmissions()
+    .filter((submission) => (month ? String(submission.submittedAt || "").slice(0, 7) === month : true))
+    .filter((submission) => {
+      const submissionProduct = submission.activeProduct || state.settings.activeProduct;
+      return product === "all" || submissionProduct === product;
+    })
+    .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+
+  if (!submissions.length) {
+    els.answerHistoryList.innerHTML = `<p class="empty-state small">No submitted answers for this filter yet.</p>`;
+    return;
+  }
+
+  const grouped = answerHistoryProductOptions().reduce((map, item) => {
+    const group = submissions.filter((submission) => (submission.activeProduct || state.settings.activeProduct) === item);
+    if (group.length) map[item] = group;
+    return map;
+  }, {});
+
+  els.answerHistoryList.innerHTML = Object.entries(grouped)
+    .map(([groupProduct, groupSubmissions]) => {
+      const cards = groupSubmissions
+        .map((submission) => {
+          const productQuestions = questionsForProduct(groupProduct);
+          const answered = Number(submission.answered || 0);
+          const total = Number(submission.totalQuestions || productQuestions.length || 0);
+          const submittedAt = submission.submittedAt ? `${formatDate(new Date(submission.submittedAt))} WIB` : "-";
+          const answerCards = productQuestions
+            .map((question) => {
+              const answer = submission.answers?.[question.id] || "";
+              return `
+                <article class="response-card">
+                  <div class="response-card-head">
+                    <span class="number-dot" style="background:${productColor(question.product)}">${escapeHtml(
+                      question.number,
+                    )}</span>
+                    <div>
+                      <strong>${escapeHtml(question.product)} · Question ${escapeHtml(question.number)}</strong>
+                      <small>${escapeHtml(question.points)} points · ${answer.trim() ? "Answered" : "Blank"}</small>
+                    </div>
+                  </div>
+                  <p class="response-question">${escapeHtml(question.question)}</p>
+                  <div class="response-answer">
+                    <span>Respondent answer</span>
+                    <p>${escapeHtml(answer || "No answer submitted.")}</p>
+                  </div>
+                </article>
+              `;
+            })
+            .join("");
+
+          return `
+            <details class="answer-history-item">
+              <summary>
+                <div>
+                  <strong>${escapeHtml(submission.email)}</strong>
+                  <span>${escapeHtml(groupProduct)} · ${escapeHtml(answered)}/${escapeHtml(total)} answered · ${escapeHtml(
+                    submission.durationFormatted || formatDuration(submission.durationSeconds),
+                  )}</span>
+                </div>
+                <small>${escapeHtml(submittedAt)} · ${escapeHtml(submission.submitReason || "manual")}</small>
+              </summary>
+              <div class="answer-history-detail">
+                ${answerCards}
+              </div>
+            </details>
+          `;
+        })
+        .join("");
+
+      return `
+        <section class="answer-history-group">
+          <div class="section-heading">
+            <h3>${escapeHtml(groupProduct)}</h3>
+            <span>${escapeHtml(groupSubmissions.length)} submitted response${
+              groupSubmissions.length === 1 ? "" : "s"
+            }</span>
+          </div>
+          ${cards}
+        </section>
+      `;
+    })
+    .join("");
+}
+
 function renderOwnerDashboard() {
   if (!isOwner()) return;
   const submissions = getSubmissions()
@@ -1070,6 +1173,7 @@ function saveSubmissionReview(email, score, feedback) {
   saveExportHistory(history);
   renderOwnerDashboard();
   renderExportHistory();
+  renderAnswerHistory();
 }
 
 async function login(email, password) {
@@ -1115,6 +1219,7 @@ function showApp() {
   renderAccess();
   renderOwnerDashboard();
   renderExportHistory();
+  renderAnswerHistory();
   showAppView("quiz");
   updateTimer();
   window.clearInterval(state.timerId);
@@ -1191,6 +1296,7 @@ function saveSubmission(attempt) {
   submissions.push(submission);
   saveSubmissions(submissions);
   renderOwnerDashboard();
+  renderAnswerHistory();
   return submission;
 }
 
@@ -1531,6 +1637,7 @@ function renderAfterSettingsChange() {
   renderTraineeForm();
   renderOwnerDashboard();
   renderExportHistory();
+  renderAnswerHistory();
   renderAccess();
   updateTimer();
 }
@@ -1728,6 +1835,8 @@ function initEvents() {
   els.saveGoogleFormConfig.addEventListener("click", saveGoogleFormConfigFromForm);
   els.exportMonthlyForm.addEventListener("click", exportMonthlyGoogleForm);
   els.downloadConnectorGuide.addEventListener("click", downloadConnectorScript);
+  els.historyMonth.addEventListener("change", renderAnswerHistory);
+  els.historyProduct.addEventListener("change", renderAnswerHistory);
   els.exportHistoryList.addEventListener("click", (event) => {
     const packageButton = event.target.closest("button[data-history-package]");
     const csvButton = event.target.closest("button[data-history-csv]");

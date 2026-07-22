@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=39" />
+    <link rel="stylesheet" href="styles.css?v=40" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -273,6 +273,7 @@
           <div class="settings-submenu owner-only" id="settingsSubmenu" hidden>
             <button class="settings-subitem active" type="button" data-settings-panel="quizControlsPanel">Quiz controls</button>
             <button class="settings-subitem" type="button" data-settings-panel="responsesPanel">Responses</button>
+            <button class="settings-subitem" type="button" data-settings-panel="answerHistoryPanel">History</button>
             <button class="settings-subitem" type="button" data-settings-panel="exportPanel">Google Form</button>
           </div>
           <button class="sidebar-link logout-link" id="logoutButton" type="button">Logout</button>
@@ -572,6 +573,33 @@
           </section>
         </section>
 
+        <section class="history-panel settings-panel" data-settings-section="answerHistoryPanel" hidden aria-label="Answer history">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Answer archive</p>
+              <h3>Response history</h3>
+            </div>
+            <span>Review submitted answers by month and product</span>
+          </div>
+          <div class="history-filter-grid">
+            <label>
+              <span>Month</span>
+              <input id="historyMonth" type="month" />
+            </label>
+            <label>
+              <span>Product</span>
+              <select id="historyProduct">
+                <option value="all">All products</option>
+                <option value="General">General</option>
+                <option value="Kripto Spot">Kripto Spot</option>
+                <option value="US Stock">US Stock</option>
+                <option value="Perpetuals">Perpetuals</option>
+              </select>
+            </label>
+          </div>
+          <div class="answer-history-list" id="answerHistoryList"></div>
+        </section>
+
         <section class="export-panel settings-panel" data-settings-section="exportPanel" hidden aria-label="Google Forms export">
           <div>
             <p class="eyebrow">Google Forms bridge</p>
@@ -638,7 +666,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=39"></script>
-    <script src="app.js?v=39"></script>
+    <script src="quiz-data.js?v=40"></script>
+    <script src="app.js?v=40"></script>
   </body>
 </html>

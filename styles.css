@@ -1855,6 +1855,76 @@ h3 {
   gap: 9px;
 }
 
+.history-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.history-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.answer-history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.answer-history-group {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.answer-history-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.answer-history-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.answer-history-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.answer-history-item summary strong,
+.answer-history-item summary span,
+.answer-history-item summary small {
+  display: block;
+}
+
+.answer-history-item summary strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-weight: 620;
+}
+
+.answer-history-item summary span,
+.answer-history-item summary small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 520;
+}
+
+.answer-history-detail {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
 .history-item {
   display: flex;
   align-items: center;
@@ -1982,6 +2052,7 @@ h3 {
   .summary-grid,
   .owner-metrics,
   .google-form-grid,
+  .history-filter-grid,
   .form-grid {
     grid-template-columns: 1fr;
   }
