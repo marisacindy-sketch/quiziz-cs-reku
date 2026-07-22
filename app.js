@@ -95,6 +95,8 @@ const els = {
   productLauncher: document.querySelector("#productLauncher"),
   productLauncherGrid: document.querySelector("#productLauncherGrid"),
   productLauncherHint: document.querySelector("#productLauncherHint"),
+  traineeNameSelect: document.querySelector("#traineeNameSelect"),
+  traineePositionSelect: document.querySelector("#traineePositionSelect"),
   traineeForm: document.querySelector("#traineeForm"),
   traineeProductName: document.querySelector("#traineeProductName"),
   traineeQuestionTotal: document.querySelector("#traineeQuestionTotal"),
@@ -259,6 +261,27 @@ function traineeProfile(email = state.currentUser?.email) {
     email: String(email || "").toLowerCase(),
     position: "",
   };
+}
+
+function uniqueRosterValues(field) {
+  return traineeRoster()
+    .map((person) => person[field])
+    .filter(Boolean)
+    .filter((value, index, list) => list.indexOf(value) === index);
+}
+
+function getTraineeIdentity() {
+  if (!state.currentUser) return { name: "", position: "" };
+  const saved = JSON.parse(localStorage.getItem(storageKey("identity")) || "null") || {};
+  const profile = traineeProfile(state.currentUser.email);
+  return {
+    name: saved.name || profile.name || "",
+    position: saved.position || profile.position || "",
+  };
+}
+
+function saveTraineeIdentity(identity) {
+  localStorage.setItem(storageKey("identity"), JSON.stringify(identity));
 }
 
 function saveGoogleFormConfig() {
@@ -523,7 +546,7 @@ function getAccessState() {
   const open = now >= openAt && now <= closeAt;
   const attempt = getAttempt();
   const submitted = Boolean(attempt?.submittedAt || getSubmission(state.currentUser?.email, state.settings.activeProduct));
-  const started = Boolean(attempt?.startedByUser && attempt?.startedAt && !submitted);
+  const started = Boolean(attempt?.startedByUser && attempt?.identityConfirmed && attempt?.startedAt && !submitted);
   const paused = Boolean(attempt?.pausedAt && attempt?.pausedRemainingMs);
   const endsAt = paused
     ? new Date(now.getTime() + Number(attempt.pausedRemainingMs))
@@ -540,15 +563,32 @@ function startWeeklyProduct(product = state.settings.activeProduct) {
   if (!access.open || isOwner()) return;
   if (product !== state.settings.activeProduct) return;
   if (getSubmission(state.currentUser.email, product)) return;
-  if (getAttempt(product)?.startedByUser && getAttempt(product)?.startedAt) {
+  if (getAttempt(product)?.startedByUser && getAttempt(product)?.identityConfirmed && getAttempt(product)?.startedAt) {
     renderAccess();
     updateTimer();
     return;
   }
+  const identity = {
+    name: els.traineeNameSelect.value,
+    position: els.traineePositionSelect.value,
+  };
+  if (!identity.name || !identity.position) {
+    els.productLauncherHint.textContent = "Pick your name and position before starting.";
+    return;
+  }
+  saveTraineeIdentity(identity);
   const now = new Date();
   const endsAt = new Date(now.getTime() + Number(state.settings.durationMinutes) * 60 * 1000);
   saveAttempt(
-    { startedByUser: true, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), submittedAt: null },
+    {
+      startedByUser: true,
+      identityConfirmed: true,
+      name: identity.name,
+      position: identity.position,
+      startedAt: now.toISOString(),
+      endsAt: endsAt.toISOString(),
+      submittedAt: null,
+    },
     product,
   );
   state.product = product;
@@ -636,7 +676,7 @@ function productLaunchState(product, access = getAccessState()) {
   const completed = Boolean(productCompletion(product));
   const active = product === state.settings.activeProduct;
   const attempt = getAttempt(product);
-  const started = Boolean(active && attempt?.startedByUser && attempt?.startedAt && !completed);
+  const started = Boolean(active && attempt?.startedByUser && attempt?.identityConfirmed && attempt?.startedAt && !completed);
   if (completed) {
     return { active, completed, started: false, buttonText: "Completed", disabled: true, tone: "completed" };
   }
@@ -670,8 +710,9 @@ function renderProductLauncher(access = getAccessState()) {
   }
 
   const activeAttempt = getAttempt(state.settings.activeProduct);
-  const showLauncher = !access.allowed || !activeAttempt?.startedByUser;
+  const showLauncher = !access.allowed || !activeAttempt?.startedByUser || !activeAttempt?.identityConfirmed;
   els.productLauncher.hidden = !showLauncher;
+  renderTraineeIdentityControls();
   els.productLauncherHint.textContent = access.open
     ? "Timer starts only after you press Start."
     : `Next run: ${formatDate(access.openAt)} to ${formatDate(access.closeAt)} WIB.`;
@@ -702,6 +743,31 @@ function renderProductLauncher(access = getAccessState()) {
       </article>
     `;
   }).join("");
+}
+
+function renderTraineeIdentityControls() {
+  if (!els.traineeNameSelect || !els.traineePositionSelect) return;
+  const identity = getTraineeIdentity();
+  const names = uniqueRosterValues("name");
+  const positions = uniqueRosterValues("position");
+  const nameOptions = (names.length ? names : [identity.name || nameFromEmail(state.currentUser?.email)]).filter(Boolean);
+  const positionOptions = (positions.length ? positions : [identity.position || "Customer Success Associate"]).filter(Boolean);
+
+  els.traineeNameSelect.innerHTML = [
+    `<option value="">Choose name</option>`,
+    ...nameOptions.map(
+      (name) => `<option value="${escapeHtml(name)}" ${identity.name === name ? "selected" : ""}>${escapeHtml(name)}</option>`,
+    ),
+  ].join("");
+  els.traineePositionSelect.innerHTML = [
+    `<option value="">Choose position</option>`,
+    ...positionOptions.map(
+      (position) =>
+        `<option value="${escapeHtml(position)}" ${
+          identity.position === position ? "selected" : ""
+        }>${escapeHtml(position)}</option>`,
+    ),
+  ].join("");
 }
 
 function renderFilters() {
@@ -970,6 +1036,10 @@ function resumeFiveMinuteWarning() {
 
 function syncTimeAlertModal(access = getAccessState()) {
   if (isOwner() || !els.timeAlertModal) return;
+  if (!access.started) {
+    els.timeAlertModal.hidden = true;
+    return;
+  }
   if (access.paused && !access.submitted) {
     els.timeAlertModal.hidden = false;
     updateTimerReels(Number(access.attempt.pausedRemainingMs) || 5 * 60 * 1000);
@@ -996,9 +1066,10 @@ function updateTimer() {
     updateTimerProgress(100);
     return;
   }
-  if (!access.attempt?.endsAt) {
+  if (!access.started || !access.attempt?.endsAt) {
     updateTimerReels("--:--:--");
     els.timerLabel.textContent = "standby";
+    els.timerChip.classList.remove("danger");
     updateTimerProgress(0);
     return;
   }
@@ -1559,7 +1630,7 @@ async function submitFinal(reason = "manual") {
 async function autoSubmitExpiredAttempt() {
   if (isOwner() || state.autoSubmitting) return;
   const attempt = getAttempt();
-  if (!attempt || attempt.submittedAt) {
+  if (!attempt || !attempt.identityConfirmed || attempt.submittedAt) {
     renderAccess();
     return;
   }
@@ -1575,7 +1646,14 @@ async function autoSubmitExpiredAttempt() {
 function saveSubmission(attempt) {
   const submittedQuestions = availableQuestions();
   const answered = submittedQuestions.filter((item) => (state.answers[item.id] || "").trim()).length;
-  const profile = traineeProfile(state.currentUser.email);
+  const selectedIdentity = getTraineeIdentity();
+  const rosterProfile = traineeProfile(state.currentUser.email);
+  const profile = {
+    ...rosterProfile,
+    ...selectedIdentity,
+    name: attempt.name || selectedIdentity.name || rosterProfile.name,
+    position: attempt.position || selectedIdentity.position || rosterProfile.position,
+  };
   const submissions = getSubmissions().filter(
     (item) => item.email !== state.currentUser.email || item.activeProduct !== state.settings.activeProduct,
   );
@@ -2093,6 +2171,16 @@ function initEvents() {
     if (!button || button.disabled) return;
     startWeeklyProduct(button.dataset.startProduct);
   });
+  if (els.traineeNameSelect) {
+    els.traineeNameSelect.addEventListener("change", () => {
+      saveTraineeIdentity({ ...getTraineeIdentity(), name: els.traineeNameSelect.value });
+    });
+  }
+  if (els.traineePositionSelect) {
+    els.traineePositionSelect.addEventListener("change", () => {
+      saveTraineeIdentity({ ...getTraineeIdentity(), position: els.traineePositionSelect.value });
+    });
+  }
 
   els.nextQuestion.addEventListener("click", () => {
     const items = filteredQuestions();
