@@ -91,7 +91,7 @@ function createOrUpdateMonthlyForm(payload) {
     formResponse.submit();
   });
 
-  shareFormWithEditors(form);
+  var shareStatus = shareFormWithEditors(form);
 
   return {
     ok: true,
@@ -99,31 +99,58 @@ function createOrUpdateMonthlyForm(payload) {
     liveUrl: form.getPublishedUrl(),
     formId: form.getId(),
     title: form.getTitle(),
+    shareStatus: shareStatus,
   };
 }
 
 function shareFormWithEditors(form) {
+  var status = [];
+  try {
+    FORM_EDITORS.forEach(function(email) {
+      try {
+        form.addEditor(email);
+        status.push(email + ': form editor added');
+      } catch (error) {
+        status.push(email + ': form editor failed - ' + error.message);
+      }
+    });
+  } catch (error) {
+    status.push('Form editor sharing failed - ' + error.message);
+  }
+
   try {
     var file = DriveApp.getFileById(form.getId());
     FORM_EDITORS.forEach(function(email) {
       try {
         file.addEditor(email);
-      } catch (error) {}
+        status.push(email + ': drive editor added');
+      } catch (error) {
+        status.push(email + ': drive editor failed - ' + error.message);
+      }
     });
-  } catch (error) {}
+  } catch (error) {
+    status.push('Drive sharing skipped - ' + error.message);
+  }
+
+  return status;
 }
 
 function redirectPage(result) {
   var editUrl = result.editUrl || 'https://forms.google.com/';
+  var liveUrl = result.liveUrl || '';
+  var shareStatus = (result.shareStatus || []).map(function(line) {
+    return '<li>' + escapeHtml(line) + '</li>';
+  }).join('');
   var html =
     '<!doctype html><html><head><base target="_top">' +
-    '<meta http-equiv="refresh" content="0;url=' + escapeHtml(editUrl) + '">' +
-    '</head><body style="font-family:Arial,sans-serif;padding:24px;">' +
+    '</head><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
     '<h2>Google Form is ready</h2>' +
-    '<p>If it does not open automatically, use the button below.</p>' +
+    '<p>The connector created or updated the Form and tried to add editor access for the owner emails.</p>' +
     '<p><a style="display:inline-block;padding:12px 16px;border-radius:8px;background:#159f7a;color:#fff;text-decoration:none;" href="' +
     escapeHtml(editUrl) +
-    '">Open Google Form</a></p>' +
+    '" target="_blank">Open Google Form editor</a></p>' +
+    (liveUrl ? '<p><a href="' + escapeHtml(liveUrl) + '" target="_blank">Open live respondent link</a></p>' : '') +
+    (shareStatus ? '<h3>Share status</h3><ul>' + shareStatus + '</ul>' : '') +
     '</body></html>';
   return HtmlService.createHtmlOutput(html);
 }
