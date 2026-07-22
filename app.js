@@ -3,6 +3,7 @@ const OWNER_PASSWORD = "owner123";
 const DEFAULT_CONNECTOR_URL =
   "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec";
 const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
+const POSITION_OPTIONS = ["Customer Success Associate", "Customer Success Squad Lead / QC"];
 
 const defaultSettings = {
   openDay: 5,
@@ -749,9 +750,11 @@ function renderTraineeIdentityControls() {
   if (!els.traineeNameSelect || !els.traineePositionSelect) return;
   const identity = getTraineeIdentity();
   const names = uniqueRosterValues("name");
-  const positions = uniqueRosterValues("position");
+  const positions = [...POSITION_OPTIONS, ...uniqueRosterValues("position")].filter(
+    (position, index, list) => position && list.indexOf(position) === index,
+  );
   const nameOptions = (names.length ? names : [identity.name || nameFromEmail(state.currentUser?.email)]).filter(Boolean);
-  const positionOptions = (positions.length ? positions : [identity.position || "Customer Success Associate"]).filter(Boolean);
+  const positionOptions = (positions.length ? positions : [identity.position || POSITION_OPTIONS[0]]).filter(Boolean);
 
   els.traineeNameSelect.innerHTML = [
     `<option value="">Choose name</option>`,
