@@ -2,6 +2,7 @@ const OWNER_EMAIL = "marisa@reku.id";
 const OWNER_PASSWORD = "owner123";
 const DEFAULT_CONNECTOR_URL =
   "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec";
+const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
 
 const defaultSettings = {
   openDay: 5,
@@ -90,6 +91,10 @@ const els = {
   accessCopy: document.querySelector("#accessCopy"),
   ownerPreviewButton: document.querySelector("#ownerPreviewButton"),
   quizWorkspace: document.querySelector("#quizWorkspace"),
+  summaryGrid: document.querySelector("#summaryGrid"),
+  productLauncher: document.querySelector("#productLauncher"),
+  productLauncherGrid: document.querySelector("#productLauncherGrid"),
+  productLauncherHint: document.querySelector("#productLauncherHint"),
   traineeForm: document.querySelector("#traineeForm"),
   traineeProductName: document.querySelector("#traineeProductName"),
   traineeQuestionTotal: document.querySelector("#traineeQuestionTotal"),
@@ -322,13 +327,19 @@ function showAppView(view = "quiz") {
   }
 }
 
-function getAttempt() {
-  if (!state.currentUser) return null;
-  return JSON.parse(localStorage.getItem(storageKey("attempt")) || "null");
+function attemptStorageKey(product = state.settings.activeProduct) {
+  return storageKey(`attempt-${slugify(product)}`);
 }
 
-function saveAttempt(attempt) {
-  localStorage.setItem(storageKey("attempt"), JSON.stringify(attempt));
+function getAttempt(product = state.settings.activeProduct) {
+  if (!state.currentUser) return null;
+  const productAttempt = JSON.parse(localStorage.getItem(attemptStorageKey(product)) || "null");
+  if (productAttempt) return productAttempt;
+  return arguments.length ? null : JSON.parse(localStorage.getItem(storageKey("attempt")) || "null");
+}
+
+function saveAttempt(attempt, product = state.settings.activeProduct) {
+  localStorage.setItem(attemptStorageKey(product), JSON.stringify({ ...attempt, product }));
 }
 
 function elapsedSeconds(startedAt, submittedAt = new Date().toISOString()) {
@@ -346,7 +357,7 @@ function formatDuration(seconds) {
 
 function resetLocalAttempts() {
   Object.keys(localStorage)
-    .filter((key) => key.startsWith("quiziz-") && key.endsWith("-attempt"))
+    .filter((key) => key.startsWith("quiziz-") && key.includes("-attempt"))
     .forEach((key) => localStorage.removeItem(key));
 }
 
@@ -436,7 +447,8 @@ function getAccessState() {
   const { openAt, closeAt } = getWindow(now);
   const open = now >= openAt && now <= closeAt;
   const attempt = getAttempt();
-  const submitted = Boolean(attempt?.submittedAt);
+  const submitted = Boolean(attempt?.submittedAt || getSubmission(state.currentUser?.email, state.settings.activeProduct));
+  const started = Boolean(attempt?.startedAt && !submitted);
   const paused = Boolean(attempt?.pausedAt && attempt?.pausedRemainingMs);
   const endsAt = paused
     ? new Date(now.getTime() + Number(attempt.pausedRemainingMs))
@@ -444,17 +456,29 @@ function getAccessState() {
       ? new Date(attempt.endsAt)
       : null;
   const expired = Boolean(!paused && endsAt && now > endsAt);
-  const allowed = isOwner() || (open && !submitted && !expired);
-  return { open, allowed, submitted, expired, paused, openAt, closeAt, attempt, endsAt, now };
+  const allowed = isOwner() || (open && started && !submitted && !expired);
+  return { open, allowed, submitted, started, expired, paused, openAt, closeAt, attempt, endsAt, now };
 }
 
-function ensureAttempt() {
+function startWeeklyProduct(product = state.settings.activeProduct) {
   const access = getAccessState();
-  if (!access.open && !isOwner()) return;
-  if (access.attempt) return;
+  if (!access.open || isOwner()) return;
+  if (product !== state.settings.activeProduct) return;
+  if (getSubmission(state.currentUser.email, product)) return;
+  if (getAttempt(product)?.startedAt) {
+    renderAccess();
+    updateTimer();
+    return;
+  }
   const now = new Date();
   const endsAt = new Date(now.getTime() + Number(state.settings.durationMinutes) * 60 * 1000);
-  saveAttempt({ startedAt: now.toISOString(), endsAt: endsAt.toISOString(), submittedAt: null });
+  saveAttempt({ startedAt: now.toISOString(), endsAt: endsAt.toISOString(), submittedAt: null }, product);
+  state.product = product;
+  renderAccess();
+  renderStats();
+  renderFilters();
+  renderTraineeForm();
+  updateTimer();
 }
 
 function inferCaseType(question) {
@@ -506,6 +530,7 @@ function renderStats() {
   const questions = availableQuestions();
   const answered = questions.filter((item) => (state.answers[item.id] || "").trim()).length;
   const points = questions.reduce((sum, item) => sum + item.points, 0);
+  els.summaryGrid.hidden = !isOwner();
   if (isOwner()) {
     els.productSummaryLabel.textContent = "Products";
     els.productSummaryValue.textContent = "4";
@@ -522,6 +547,83 @@ function renderStats() {
   els.traineeAnsweredCount.textContent = answered;
   els.traineeQuestionCount.textContent = questions.length;
   els.traineeQuestionTotal.textContent = `${questions.length} questions`;
+}
+
+function productCompletion(product) {
+  if (!state.currentUser) return null;
+  return getSubmission(state.currentUser.email, product);
+}
+
+function productLaunchState(product, access = getAccessState()) {
+  const completed = Boolean(productCompletion(product));
+  const active = product === state.settings.activeProduct;
+  const attempt = getAttempt(product);
+  const started = Boolean(active && attempt?.startedAt && !completed);
+  if (completed) {
+    return { active, completed, started: false, buttonText: "Completed", disabled: true, tone: "completed" };
+  }
+  if (!active) {
+    return { active, completed, started: false, buttonText: "Not started yet", disabled: true, tone: "muted" };
+  }
+  if (started) {
+    return {
+      active,
+      completed,
+      started,
+      buttonText: access.open && !access.expired ? "Continue" : "Not started yet",
+      disabled: !access.open || access.expired,
+      tone: access.open && !access.expired ? "active" : "muted",
+    };
+  }
+  return {
+    active,
+    completed,
+    started: false,
+    buttonText: access.open ? "Start" : "Not started yet",
+    disabled: !access.open,
+    tone: access.open ? "active" : "muted",
+  };
+}
+
+function renderProductLauncher(access = getAccessState()) {
+  if (isOwner()) {
+    els.productLauncher.hidden = true;
+    return;
+  }
+
+  const activeAttempt = getAttempt(state.settings.activeProduct);
+  const showLauncher = !access.allowed || !activeAttempt?.startedAt;
+  els.productLauncher.hidden = !showLauncher;
+  els.productLauncherHint.textContent = access.open
+    ? "Timer starts only after you press Start."
+    : `Next run: ${formatDate(access.openAt)} to ${formatDate(access.closeAt)} WIB.`;
+
+  els.productLauncherGrid.innerHTML = PRODUCT_ORDER.map((product) => {
+    const questions = questionsForProduct(product);
+    const launch = productLaunchState(product, access);
+    const statusCopy = launch.completed
+      ? "Already submitted"
+      : launch.active
+        ? "This week’s quiz"
+        : "Waiting for its week";
+    return `
+      <article class="product-launch-card ${launch.active ? "active" : ""} ${launch.tone}">
+        <div>
+          <span class="product-dot" style="background:${productColor(product)}"></span>
+          <strong>${escapeHtml(product)}</strong>
+          <small>${questions.length} questions · ${statusCopy}</small>
+        </div>
+        <button
+          class="product-start-button"
+          type="button"
+          data-start-product="${escapeHtml(product)}"
+          ${launch.disabled ? "disabled" : ""}
+        >
+          ${escapeHtml(launch.buttonText)}
+        </button>
+      </article>
+    `;
+  }).join("");
 }
 
 function renderFilters() {
@@ -628,11 +730,12 @@ function syncProductControls(product) {
   });
 }
 
-function setQuizEnabled(enabled) {
+function setQuizEnabled(enabled, access = getAccessState()) {
   const traineeMode = !isOwner();
+  const traineeStarted = traineeMode && access.allowed;
   els.quizWorkspace.classList.toggle("locked", !enabled);
   els.quizWorkspace.hidden = traineeMode || !enabled;
-  els.traineeForm.hidden = !traineeMode || !enabled;
+  els.traineeForm.hidden = !traineeStarted;
   els.searchInput.disabled = !enabled;
   els.productFilter.disabled = !enabled;
   els.userAnswer.disabled = !enabled;
@@ -658,23 +761,36 @@ function renderAccess() {
   els.accessBanner.hidden = admin;
 
   if (admin) {
-    setQuizEnabled(true);
+    setQuizEnabled(true, access);
     return;
   }
+
+  renderProductLauncher(access);
 
   if (access.allowed) {
     els.accessBanner.hidden = false;
     els.accessBanner.className = "access-banner open";
     els.accessStatus.textContent = "Quiz is live";
-    els.accessTitle.textContent = "You’re good to go. Answer calmly, the clock is already watching.";
+    els.accessTitle.textContent = "You’re good to go. Answer calmly, the timer is running.";
     els.accessCopy.textContent = `Open window: ${formatDate(access.openAt)} to ${formatDate(access.closeAt)} WIB.`;
-    setQuizEnabled(true);
-    ensureAttempt();
+    setQuizEnabled(true, access);
+    renderProductLauncher(access);
+    return;
+  }
+
+  if (access.open && !access.submitted && !access.expired) {
+    els.accessBanner.hidden = false;
+    els.accessBanner.className = "access-banner open";
+    els.accessStatus.textContent = "Ready";
+    els.accessTitle.textContent = "Start when you’re ready. The timer has not started yet.";
+    els.accessCopy.textContent = `This week: ${state.settings.activeProduct}. Open until ${formatDate(access.closeAt)} WIB.`;
+    setQuizEnabled(false, access);
+    renderProductLauncher(access);
     return;
   }
 
   els.accessBanner.hidden = false;
-  setQuizEnabled(false);
+  setQuizEnabled(false, access);
   els.accessBanner.className = "access-banner closed";
   if (access.submitted) {
     els.accessStatus.textContent = "Locked in";
@@ -1294,6 +1410,7 @@ function showApp() {
   setActiveQuestion(availableQuestions()[0]?.id || state.questions[0]?.id);
   renderTraineeForm();
   renderAccess();
+  renderProductLauncher();
   renderOwnerDashboard();
   renderExportHistory();
   renderAnswerHistory();
@@ -1329,6 +1446,7 @@ async function submitFinal(reason = "manual") {
   const submission = saveSubmission(finalAttempt);
   await submitToGoogleForm(submission);
   renderAccess();
+  renderProductLauncher();
   setActiveQuestion(state.activeId);
 }
 
@@ -1374,6 +1492,7 @@ function saveSubmission(attempt) {
   saveSubmissions(submissions);
   renderOwnerDashboard();
   renderAnswerHistory();
+  renderProductLauncher();
   return submission;
 }
 
@@ -1858,6 +1977,12 @@ function initEvents() {
     state.answers[field.dataset.formAnswer] = field.value;
     saveAnswers();
     renderStats();
+  });
+
+  els.productLauncherGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-start-product]");
+    if (!button || button.disabled) return;
+    startWeeklyProduct(button.dataset.startProduct);
   });
 
   els.nextQuestion.addEventListener("click", () => {

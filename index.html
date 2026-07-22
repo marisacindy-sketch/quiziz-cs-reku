@@ -325,7 +325,7 @@
           <button id="ownerPreviewButton" class="secondary" type="button" hidden>Owner preview</button>
         </section>
 
-        <section class="summary-grid" aria-label="Quiz summary">
+        <section class="summary-grid" id="summaryGrid" aria-label="Quiz summary">
           <article>
             <span id="productSummaryLabel">Products</span>
             <strong id="productSummaryValue">4</strong>
@@ -346,6 +346,17 @@
             <strong><span id="answeredCount">0</span>/<span id="questionCount">40</span></strong>
             <small>Your draft keeps saving</small>
           </article>
+        </section>
+
+        <section class="product-launcher" id="productLauncher" hidden aria-label="Weekly quiz products">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Product quiz</p>
+              <h2>Start this week’s product</h2>
+            </div>
+            <span id="productLauncherHint">Timer starts only after you press Start.</span>
+          </div>
+          <div class="product-launcher-grid" id="productLauncherGrid"></div>
         </section>
 
         <section class="workspace" id="quizWorkspace">
