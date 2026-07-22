@@ -13,7 +13,7 @@ const defaultSettings = {
 };
 
 const defaultGoogleFormConfig = {
-  enabled: false,
+  enabled: true,
   connectorUrl: "",
 };
 
@@ -39,10 +39,12 @@ function normalizeStoredSettings() {
 }
 
 function normalizeGoogleFormConfig(config) {
+  const connectorUrl = config?.connectorUrl || config?.actionUrl || "";
   return {
     ...defaultGoogleFormConfig,
     ...(config || {}),
-    connectorUrl: config?.connectorUrl || config?.actionUrl || "",
+    enabled: config?.enabled ?? Boolean(connectorUrl),
+    connectorUrl,
   };
 }
 
@@ -786,7 +788,7 @@ function fillSettingsForm() {
 function fillGoogleFormConfig() {
   els.exportMonth.value = els.exportMonth.value || currentMonthValue();
   els.exportProduct.value = state.settings.activeProduct;
-  els.googleFormEnabled.value = state.googleForm.enabled ? "on" : "off";
+  els.googleFormEnabled.value = "on";
   els.googleConnectorUrl.value = state.googleForm.connectorUrl || "";
   renderGoogleFormStatus();
   renderExportHistory();
@@ -797,17 +799,13 @@ function renderGoogleFormStatus(message) {
     els.googleFormStatus.textContent = message;
     return;
   }
-  if (state.googleForm.enabled && state.googleForm.connectorUrl) {
+  if (state.googleForm.connectorUrl) {
     els.googleFormStatus.textContent =
-      "Ready. Monthly export will create or update the Google Form through the connector.";
-    return;
-  }
-  if (state.googleForm.connectorUrl && !state.googleForm.enabled) {
-    els.googleFormStatus.textContent = "Connector URL is saved. Turn connector on before exporting to Google Form.";
+      "Ready. Click Create Google Form now to create or update the monthly form.";
     return;
   }
   els.googleFormStatus.textContent =
-    "Paste the connector URL and turn connector on first. Export will not create a Google Form without it.";
+    "Paste the connector URL first. After that this button creates or updates the Google Form.";
 }
 
 function questionsForProduct(product) {
@@ -1438,7 +1436,7 @@ function exportResponsesCsv() {
 
 function readGoogleFormConfigFromForm() {
   state.googleForm = {
-    enabled: els.googleFormEnabled.value === "on",
+    enabled: Boolean(els.googleConnectorUrl.value.trim()),
     connectorUrl: els.googleConnectorUrl.value.trim(),
   };
 }
@@ -1449,9 +1447,9 @@ function saveGoogleFormConfigFromForm() {
   saveGoogleFormConfig();
   fillGoogleFormConfig();
   renderGoogleFormStatus(
-    state.googleForm.enabled
-      ? "Saved. Monthly exports will use this connector to create or update the Google Form."
-      : "Saved. Monthly exports will stay in local history until connector mode is on.",
+    state.googleForm.connectorUrl
+      ? "Saved. You can create or update Google Forms directly from this page now."
+      : "Saved locally. Paste the connector URL before creating a Google Form.",
   );
 }
 
@@ -1464,9 +1462,9 @@ async function exportMonthlyGoogleForm() {
   const record = buildExportRecord(month, product);
   upsertExportHistory(record);
 
-  if (!state.googleForm.enabled || !state.googleForm.connectorUrl) {
+  if (!state.googleForm.connectorUrl) {
     renderGoogleFormStatus(
-      `Saved ${record.title} to history, but Google Form was not created. Paste the connector URL and turn connector on first.`,
+      `Saved ${record.title} to history, but Google Form was not created yet. Paste the connector URL first.`,
     );
     return;
   }
@@ -1479,7 +1477,7 @@ async function exportMonthlyGoogleForm() {
       body: JSON.stringify(buildGoogleFormPayload(record)),
     });
     upsertExportHistory({ ...record, googleFormStatus: "sent_to_connector", updatedAt: new Date().toISOString() });
-    renderGoogleFormStatus(`Sent ${record.title} to the Google Form connector and saved it in history.`);
+    renderGoogleFormStatus(`Sent ${record.title} to Google. The Form will appear in the connector owner's Google Drive.`);
   } catch {
     upsertExportHistory({ ...record, googleFormStatus: "connector_failed", updatedAt: new Date().toISOString() });
     renderGoogleFormStatus(
@@ -1490,15 +1488,38 @@ async function exportMonthlyGoogleForm() {
 
 function downloadConnectorScript() {
   if (!isOwner()) return;
-  const script = `function doPost(e) {
-  const payload = JSON.parse(e.postData.contents);
-  const key = 'quiziz-form-' + payload.month + '-' + payload.product;
+  const script = `function doGet() {
+  return jsonResponse({
+    ok: true,
+    app: 'Quiziz CS Reku Google Form Connector',
+    message: 'Connector is live. Paste this web app URL into Quiziz CS Reku.',
+  });
+}
+
+function doPost(e) {
+  const payload = JSON.parse(e.postData.contents || '{}');
+  if (payload.action !== 'create_or_update_monthly_form') {
+    return jsonResponse({ ok: false, error: 'Unsupported action.' });
+  }
+
   const props = PropertiesService.getUserProperties();
+  const key = 'quiziz-form-' + payload.month + '-' + payload.product;
   const existingId = props.getProperty(key);
   const form = existingId ? FormApp.openById(existingId) : FormApp.create(payload.formTitle);
+
   props.setProperty(key, form.getId());
   form.setTitle(payload.formTitle);
-  form.setDescription('Created from Quiziz CS Reku export. Product: ' + payload.product + ', month: ' + payload.month);
+  form.setDescription(
+    'Created from Quiziz CS Reku export.' +
+      '\\nProduct: ' + payload.product +
+      '\\nMonth: ' + payload.month +
+      '\\nQuestions: ' + (payload.questions || []).length +
+      '\\nResponses imported: ' + (payload.responses || []).length
+  );
+
+  try {
+    form.setIsQuiz(true);
+  } catch (error) {}
 
   try { form.deleteAllResponses(); } catch (error) {}
   form.getItems().slice().reverse().forEach(function(item) {
@@ -1513,7 +1534,13 @@ function downloadConnectorScript() {
       .setHelpText('Answer key: ' + question.answerKey);
   });
 
-  payload.responses.forEach(function(response) {
+  questionItems.forEach(function(item, index) {
+    try {
+      item.setPoints(Number(payload.questions[index].points || 10));
+    } catch (error) {}
+  });
+
+  (payload.responses || []).forEach(function(response) {
     const formResponse = form.createResponse();
     formResponse.withItemResponse(emailItem.createResponse(response.email || ''));
     formResponse.withItemResponse(metaItem.createResponse(
@@ -1523,16 +1550,27 @@ function downloadConnectorScript() {
       '\\nScore: ' + (response.score || '') +
       '\\nFeedback: ' + (response.feedback || '')
     ));
-    response.answers.forEach(function(answer, index) {
-      formResponse.withItemResponse(questionItems[index].createResponse(answer.answer || ''));
+    (response.answers || []).forEach(function(answer, index) {
+      if (questionItems[index]) {
+        formResponse.withItemResponse(questionItems[index].createResponse(answer.answer || ''));
+      }
     });
     formResponse.submit();
   });
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ ok: true, editUrl: form.getEditUrl(), liveUrl: form.getPublishedUrl() }))
-    .setMimeType(ContentService.MimeType.JSON);
-}`;
+  return jsonResponse({
+    ok: true,
+    editUrl: form.getEditUrl(),
+    liveUrl: form.getPublishedUrl(),
+    formId: form.getId(),
+    title: form.getTitle(),
+  });
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
+`;
   downloadText("quiziz-google-form-connector.gs", script);
   renderGoogleFormStatus("Downloaded the connector script. After it is deployed once, paste its web app URL here.");
 }

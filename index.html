@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=36" />
+    <link rel="stylesheet" href="styles.css?v=37" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -624,21 +624,19 @@
                 placeholder="Paste Apps Script web app URL here"
               />
             </label>
-            <label>
-              <span>Google Form export</span>
-              <select id="googleFormEnabled">
-                <option value="off">Connector off</option>
-                <option value="on">Connector on</option>
-              </select>
-            </label>
+            <div class="connector-note">
+              <span>One-time setup</span>
+              <strong>Paste connector URL once, then create forms from here.</strong>
+            </div>
+            <input id="googleFormEnabled" type="hidden" value="on" />
           </div>
           <div class="export-actions">
-            <button id="exportMonthlyForm" type="button">Create / update Google Form</button>
+            <button id="exportMonthlyForm" type="button">Create Google Form now</button>
             <button id="saveGoogleFormConfig" class="secondary" type="button">Save connector</button>
             <button id="downloadConnectorGuide" class="secondary" type="button">Download connector script</button>
           </div>
           <p class="helper-text" id="googleFormStatus">
-            Paste the connector URL and turn connector on first. No entry IDs needed.
+            Paste the connector URL first. After that this button creates or updates the Google Form.
           </p>
 
           <div class="export-divider"></div>
@@ -661,7 +659,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=36"></script>
-    <script src="app.js?v=36"></script>
+    <script src="quiz-data.js?v=37"></script>
+    <script src="app.js?v=37"></script>
   </body>
 </html>
