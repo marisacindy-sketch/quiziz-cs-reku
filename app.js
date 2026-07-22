@@ -950,7 +950,7 @@ function renderResponseViewer(email) {
           </div>
           <p class="response-question">${escapeHtml(question.question)}</p>
           <div class="response-answer">
-            <span>Friend’s answer</span>
+            <span>Answer</span>
             <p>${escapeHtml(answer || "No answer submitted.")}</p>
           </div>
         </article>
@@ -1024,7 +1024,7 @@ function renderAnswerHistory() {
                   </div>
                   <p class="response-question">${escapeHtml(question.question)}</p>
                   <div class="response-answer">
-                    <span>Respondent answer</span>
+                    <span>Answer</span>
                     <p>${escapeHtml(answer || "No answer submitted.")}</p>
                   </div>
                 </article>
