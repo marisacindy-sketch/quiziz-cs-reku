@@ -1,3 +1,5 @@
+var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
+
 function doGet() {
   return HtmlService.createHtmlOutput(
     '<p>Quiziz CS Reku connector is live. Copy this web app URL into the Quiziz Google Form connector field.</p>'
@@ -89,6 +91,8 @@ function createOrUpdateMonthlyForm(payload) {
     formResponse.submit();
   });
 
+  shareFormWithEditors(form);
+
   return {
     ok: true,
     editUrl: form.getEditUrl(),
@@ -96,6 +100,17 @@ function createOrUpdateMonthlyForm(payload) {
     formId: form.getId(),
     title: form.getTitle(),
   };
+}
+
+function shareFormWithEditors(form) {
+  try {
+    var file = DriveApp.getFileById(form.getId());
+    FORM_EDITORS.forEach(function(email) {
+      try {
+        file.addEditor(email);
+      } catch (error) {}
+    });
+  } catch (error) {}
 }
 
 function redirectPage(result) {
