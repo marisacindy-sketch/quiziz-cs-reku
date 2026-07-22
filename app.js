@@ -1365,6 +1365,9 @@ function renderAnswerHistory() {
       const cards = groupSubmissions
         .map((submission) => {
           const productQuestions = questionsForProduct(groupProduct);
+          const profile = traineeProfile(submission.email);
+          const responderName = submission.name || profile.name || nameFromEmail(submission.email);
+          const responderEmail = submission.email || profile.email || "";
           const answered = Number(submission.answered || 0);
           const total = Number(submission.totalQuestions || productQuestions.length || 0);
           const submittedAt = submission.submittedAt ? `${formatDate(new Date(submission.submittedAt))} WIB` : "-";
@@ -1395,13 +1398,17 @@ function renderAnswerHistory() {
           return `
             <details class="answer-history-item">
               <summary>
-                <div>
-                  <strong>${escapeHtml(submission.email)}</strong>
-                  <span>${escapeHtml(groupProduct)} · ${escapeHtml(answered)}/${escapeHtml(total)} answered · ${escapeHtml(
+                <div class="history-responder">
+                  <strong>${escapeHtml(responderName)}</strong>
+                  <span>${escapeHtml(responderEmail)}</span>
+                  <small>${escapeHtml(groupProduct)} · ${escapeHtml(answered)}/${escapeHtml(total)} answered · ${escapeHtml(
                     submission.durationFormatted || formatDuration(submission.durationSeconds),
-                  )}</span>
+                  )}</small>
                 </div>
-                <small>${escapeHtml(submittedAt)} · ${escapeHtml(submission.submitReason || "manual")}</small>
+                <div class="history-submitted-meta">
+                  <small>${escapeHtml(submittedAt)} · ${escapeHtml(submission.submitReason || "manual")}</small>
+                  <i class="history-toggle" aria-hidden="true"></i>
+                </div>
               </summary>
               <div class="answer-history-detail">
                 ${answerCards}

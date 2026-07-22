@@ -2022,27 +2022,67 @@ h3 {
   cursor: pointer;
 }
 
+.answer-history-item summary:hover {
+  background: #f7fafc;
+}
+
 .answer-history-item summary::-webkit-details-marker {
   display: none;
 }
 
-.answer-history-item summary strong,
-.answer-history-item summary span,
-.answer-history-item summary small {
+.history-responder strong,
+.history-responder span,
+.history-responder small,
+.history-submitted-meta small {
   display: block;
 }
 
-.answer-history-item summary strong {
+.history-responder strong {
   color: var(--ink);
   font-size: 0.86rem;
   font-weight: 620;
 }
 
-.answer-history-item summary span,
-.answer-history-item summary small {
+.history-responder span,
+.history-responder small,
+.history-submitted-meta small {
   color: var(--muted);
   font-size: 0.76rem;
   font-weight: 520;
+}
+
+.history-submitted-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: right;
+}
+
+.history-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #eef5fb;
+  color: #31435c;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 680;
+}
+
+.history-toggle::before {
+  content: "View answers";
+}
+
+.answer-history-item[open] .history-toggle {
+  background: #e8f7f0;
+  color: #13765e;
+}
+
+.answer-history-item[open] .history-toggle::before {
+  content: "Hide answers";
 }
 
 .answer-history-detail {
