@@ -35,6 +35,14 @@ const defaultGoogleFormConfig = {
   connectorUrl: DEFAULT_CONNECTOR_URL,
 };
 
+function keepPublicUrlStable() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("v")) return;
+  url.searchParams.delete("v");
+  const cleanUrl = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
 const state = {
   questions: [],
   activeId: "",
@@ -2267,6 +2275,7 @@ function initEvents() {
 }
 
 async function boot() {
+  keepPublicUrlStable();
   try {
     const response = await fetch("quiz-data.json");
     state.questions = await response.json();
