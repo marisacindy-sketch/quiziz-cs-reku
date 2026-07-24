@@ -2026,8 +2026,8 @@ async function downloadConnectorScript() {
   try {
     const response = await fetch("google-form-connector.gs");
     const script = await response.text();
-    downloadText("quiziz-google-form-connector.gs", script);
-    renderGoogleFormStatus("Downloaded the connector script. Deploy it once, then paste its Web App URL here.");
+    downloadText("quiziz-google-form-connector.txt", script);
+    renderGoogleFormStatus("Downloaded a readable connector script. Open the .txt file, paste it into Apps Script, deploy it, then paste its Web App URL here.");
   } catch {
     renderGoogleFormStatus("Could not download the connector script. Open google-form-connector.gs from the repo instead.");
   }
