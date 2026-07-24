@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiziz Connector Script</title>
+    <style>
+      :root {
+        color: #162033;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f5f8fb;
+      }
+
+      main {
+        display: grid;
+        gap: 16px;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+
+      h1,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 1.4rem;
+      }
+
+      p {
+        color: #62708a;
+        line-height: 1.5;
+      }
+
+      button {
+        width: fit-content;
+        border: 0;
+        border-radius: 10px;
+        padding: 11px 16px;
+        background: #159f7a;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 70vh;
+        box-sizing: border-box;
+        border: 1px solid #d9e2ec;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fff;
+        color: #172033;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.84rem;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Quiziz Google Form Connector</h1>
+      <p>Copy semua script di bawah ini, paste ke Apps Script, lalu deploy sebagai Web App.</p>
+      <button id="copyButton" type="button">Copy script</button>
+      <textarea id="connectorScript" spellcheck="false">Loading connector script...</textarea>
+    </main>
+    <script>
+      async function loadConnector() {
+        const field = document.querySelector("#connectorScript");
+        const button = document.querySelector("#copyButton");
+        try {
+          const response = await fetch("google-form-connector.txt");
+          field.value = await response.text();
+        } catch {
+          field.value = "Could not load connector script. Please refresh this page.";
+        }
+
+        button.addEventListener("click", async () => {
+          field.select();
+          await navigator.clipboard.writeText(field.value);
+          button.textContent = "Copied";
+          window.setTimeout(() => {
+            button.textContent = "Copy script";
+          }, 1400);
+        });
+      }
+
+      loadConnector();
+    </script>
+  </body>
+</html>

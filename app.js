@@ -2021,16 +2021,10 @@ async function exportMonthlyGoogleForm() {
   }
 }
 
-async function downloadConnectorScript() {
+function openConnectorScript() {
   if (!isOwner()) return;
-  try {
-    const response = await fetch("google-form-connector.txt");
-    const script = await response.text();
-    downloadText("quiziz-google-form-connector.txt", script);
-    renderGoogleFormStatus("Downloaded a readable connector script. Open the .txt file, paste it into Apps Script, deploy it, then paste its Web App URL here.");
-  } catch {
-    renderGoogleFormStatus("Could not download the connector script. Open google-form-connector.gs from the repo instead.");
-  }
+  window.open("connector.html", "_blank", "noopener");
+  renderGoogleFormStatus("Opened the connector script in a new tab. Copy it into Apps Script, deploy it, then paste its Web App URL here.");
 }
 
 function exportQuestionTemplateCsv() {
@@ -2265,7 +2259,7 @@ function initEvents() {
   els.responsesProduct.addEventListener("change", renderOwnerDashboard);
   els.saveGoogleFormConfig.addEventListener("click", saveGoogleFormConfigFromForm);
   els.exportMonthlyForm.addEventListener("click", exportMonthlyGoogleForm);
-  els.downloadConnectorGuide.addEventListener("click", downloadConnectorScript);
+  els.downloadConnectorGuide.addEventListener("click", openConnectorScript);
   els.historyMonth.addEventListener("change", renderAnswerHistory);
   els.historyProduct.addEventListener("change", renderAnswerHistory);
   els.exportHistoryList.addEventListener("click", (event) => {
