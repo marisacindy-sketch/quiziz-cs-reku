@@ -16,6 +16,11 @@ var DEFAULT_TRAINEE_ROSTER = [
 ].join('\n');
 
 function doGet(e) {
+  if (e.parameter && e.parameter.action === 'save_settings') {
+    var settings = e.parameter.settings ? JSON.parse(e.parameter.settings) : {};
+    return settingsResponse(e.parameter.callback, saveWeeklySettings(settings));
+  }
+
   if (e.parameter && e.parameter.action === 'get_settings') {
     return settingsResponse(e.parameter.callback);
   }
@@ -82,8 +87,8 @@ function saveWeeklySettings(settings) {
   return { ok: true, settings: next };
 }
 
-function settingsResponse(callback) {
-  var payload = { ok: true, settings: getWeeklySettings() };
+function settingsResponse(callback, payload) {
+  payload = payload || { ok: true, settings: getWeeklySettings() };
   if (callback) {
     return ContentService
       .createTextOutput(String(callback) + '(' + JSON.stringify(payload) + ');')

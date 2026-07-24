@@ -319,6 +319,11 @@ function activeConnectorUrl() {
 function loadRemoteSettings() {
   const url = activeConnectorUrl();
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
+  return callSettingsConnector(url, "get_settings");
+}
+
+function callSettingsConnector(url, action, settings = null) {
+  if (!isValidConnectorUrl(url)) return Promise.resolve(false);
   return new Promise((resolve) => {
     const callbackName = `quizizSettings_${Date.now()}_${Math.round(Math.random() * 10000)}`;
     const script = document.createElement("script");
@@ -348,31 +353,28 @@ function loadRemoteSettings() {
       cleanup();
       resolve(false);
     };
-    script.src = `${url}?action=get_settings&callback=${encodeURIComponent(callbackName)}`;
+    const params = new URLSearchParams({
+      action,
+      callback: callbackName,
+    });
+    if (settings) params.set("settings", JSON.stringify(settings));
+    script.src = `${url}?${params.toString()}`;
     document.head.appendChild(script);
   });
 }
 
 function publishRemoteSettings() {
   const url = activeConnectorUrl();
-  if (!isValidConnectorUrl(url)) return;
-  fetch(url, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "save_settings",
-      settings: {
-        openDay: state.settings.openDay,
-        openTime: state.settings.openTime,
-        closeDay: state.settings.closeDay,
-        closeTime: state.settings.closeTime,
-        durationMinutes: state.settings.durationMinutes,
-        activeProduct: state.settings.activeProduct,
-        expectedEmails: state.settings.expectedEmails,
-      },
-    }),
-  }).catch(() => {});
+  const settings = {
+    openDay: state.settings.openDay,
+    openTime: state.settings.openTime,
+    closeDay: state.settings.closeDay,
+    closeTime: state.settings.closeTime,
+    durationMinutes: state.settings.durationMinutes,
+    activeProduct: state.settings.activeProduct,
+    expectedEmails: state.settings.expectedEmails,
+  };
+  return callSettingsConnector(url, "save_settings", settings);
 }
 
 function getTraineePasswordStore() {
@@ -2122,7 +2124,7 @@ function initEvents() {
     updateTimer();
   });
 
-  els.settingsForm.addEventListener("submit", (event) => {
+  els.settingsForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!isOwner()) return;
     state.settings = {
@@ -2137,16 +2139,18 @@ function initEvents() {
     };
     state.settings = normalizeSettings(state.settings);
     saveSettings();
-    publishRemoteSettings();
+    els.settingsSavedText.textContent = "Saving rules...";
+    const synced = await publishRemoteSettings();
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
     const allowedCount = expectedEmailList().length;
+    const syncCopy = synced ? "Synced for trainees." : "Saved here. Redeploy the connector so trainees get this globally.";
     els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
       state.settings.closeDay,
     )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
       state.settings.activeProduct
-    }. Allowed emails: ${allowedCount}.`;
+    }. Allowed emails: ${allowedCount}. ${syncCopy}`;
   });
 
   els.searchInput.addEventListener("input", (event) => {
