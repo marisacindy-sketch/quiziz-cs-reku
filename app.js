@@ -2024,7 +2024,7 @@ async function exportMonthlyGoogleForm() {
 async function downloadConnectorScript() {
   if (!isOwner()) return;
   try {
-    const response = await fetch("google-form-connector.gs");
+    const response = await fetch("google-form-connector.txt");
     const script = await response.text();
     downloadText("quiziz-google-form-connector.txt", script);
     renderGoogleFormStatus("Downloaded a readable connector script. Open the .txt file, paste it into Apps Script, deploy it, then paste its Web App URL here.");
