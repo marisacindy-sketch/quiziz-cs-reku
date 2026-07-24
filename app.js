@@ -4,6 +4,20 @@ const DEFAULT_CONNECTOR_URL =
   "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec";
 const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
 const POSITION_OPTIONS = ["Customer Success Associate", "Customer Success Squad Lead / QC"];
+const DEFAULT_TRAINEE_ROSTER = [
+  "Frans William Tobing | frans.william@reku.id | Customer Success Associate",
+  "Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate",
+  "Ahmad Wahyudi | ahmad.wahyudi@reku.id | Customer Success Associate",
+  "Ayodia Fikri Rizal Moenir | ayodiafikri@reku.id | Customer Success Associate",
+  "Dzulfahmi Fauzan | dzulfahmifauzan@reku.id | Customer Success Associate",
+  "Edi Kurniawan | edi.kurniawan@reku.id | Customer Success Associate",
+  "Alvian Asrori | alvian.asrori@reku.id | Customer Success Associate",
+  "Moza Eliza | moza.eliza@reku.id | Customer Success Associate",
+  "Riski Fadilah Ardian | riski.fadilah@reku.id | Customer Success Associate",
+  "Rizky Afrianzie | rizky.afrianzie@reku.id | Customer Success Associate",
+  "Tasya Salma Ramdini Putri | tasya.salma@reku.id | Customer Success Associate",
+  "Willyansya Heka | willyansyaheka@reku.id | Customer Success Associate",
+].join("\n");
 
 const defaultSettings = {
   openDay: 5,
@@ -13,7 +27,7 @@ const defaultSettings = {
   durationMinutes: 90,
   answerKeyMode: "owner",
   activeProduct: "General",
-  expectedEmails: "",
+  expectedEmails: DEFAULT_TRAINEE_ROSTER,
 };
 
 const defaultGoogleFormConfig = {
@@ -39,7 +53,7 @@ const state = {
 };
 
 function normalizeStoredSettings() {
-  return { ...defaultSettings, ...(JSON.parse(localStorage.getItem("quiziz-settings") || "null") || {}) };
+  return normalizeSettings(JSON.parse(localStorage.getItem("quiziz-settings") || "null") || {});
 }
 
 function normalizeGoogleFormConfig(config) {
@@ -378,7 +392,9 @@ async function hashPassword(email, password) {
 }
 
 function normalizeSettings(settings) {
-  return { ...defaultSettings, ...(settings || {}) };
+  const next = { ...defaultSettings, ...(settings || {}) };
+  if (!String(next.expectedEmails || "").trim()) next.expectedEmails = DEFAULT_TRAINEE_ROSTER;
+  return next;
 }
 
 function isOwner() {

@@ -1,5 +1,19 @@
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
+var DEFAULT_TRAINEE_ROSTER = [
+  'Frans William Tobing | frans.william@reku.id | Customer Success Associate',
+  'Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate',
+  'Ahmad Wahyudi | ahmad.wahyudi@reku.id | Customer Success Associate',
+  'Ayodia Fikri Rizal Moenir | ayodiafikri@reku.id | Customer Success Associate',
+  'Dzulfahmi Fauzan | dzulfahmifauzan@reku.id | Customer Success Associate',
+  'Edi Kurniawan | edi.kurniawan@reku.id | Customer Success Associate',
+  'Alvian Asrori | alvian.asrori@reku.id | Customer Success Associate',
+  'Moza Eliza | moza.eliza@reku.id | Customer Success Associate',
+  'Riski Fadilah Ardian | riski.fadilah@reku.id | Customer Success Associate',
+  'Rizky Afrianzie | rizky.afrianzie@reku.id | Customer Success Associate',
+  'Tasya Salma Ramdini Putri | tasya.salma@reku.id | Customer Success Associate',
+  'Willyansya Heka | willyansyaheka@reku.id | Customer Success Associate',
+].join('\n');
 
 function doGet(e) {
   if (e.parameter && e.parameter.action === 'get_settings') {
@@ -44,7 +58,7 @@ function defaultWeeklySettings() {
     closeTime: '23:59',
     durationMinutes: 90,
     activeProduct: 'General',
-    expectedEmails: '',
+    expectedEmails: DEFAULT_TRAINEE_ROSTER,
   };
 }
 
@@ -52,7 +66,9 @@ function getWeeklySettings() {
   var raw = PropertiesService.getUserProperties().getProperty(SETTINGS_KEY);
   if (!raw) return defaultWeeklySettings();
   try {
-    return Object.assign(defaultWeeklySettings(), JSON.parse(raw));
+    var settings = Object.assign(defaultWeeklySettings(), JSON.parse(raw));
+    if (!String(settings.expectedEmails || '').trim()) settings.expectedEmails = DEFAULT_TRAINEE_ROSTER;
+    return settings;
   } catch (error) {
     return defaultWeeklySettings();
   }
@@ -60,6 +76,7 @@ function getWeeklySettings() {
 
 function saveWeeklySettings(settings) {
   var next = Object.assign(defaultWeeklySettings(), settings || {});
+  if (!String(next.expectedEmails || '').trim()) next.expectedEmails = DEFAULT_TRAINEE_ROSTER;
   next.updatedAt = new Date().toISOString();
   PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(next));
   return { ok: true, settings: next };
