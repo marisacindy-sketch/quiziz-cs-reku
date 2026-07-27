@@ -1,4 +1,4 @@
-var CONNECTOR_VERSION = '2026-07-27-v3';
+var CONNECTOR_VERSION = '2026-07-27-v4';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
