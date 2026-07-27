@@ -426,6 +426,18 @@ function syncLocalSubmissionsToRemote() {
   });
 }
 
+function recoverSubmittedAttempts() {
+  if (!state.currentUser || isOwner()) return;
+  PRODUCT_ORDER.forEach((product) => {
+    const attempt = getAttempt(product);
+    if (!attempt?.submittedAt) return;
+    const exists = getSubmission(state.currentUser.email, product);
+    if (exists) return;
+    const recovered = buildSubmission(attempt, product);
+    mergeSubmissions([recovered]);
+  });
+}
+
 function getTraineePasswordStore() {
   return JSON.parse(localStorage.getItem("quiziz-trainee-passwords") || "{}");
 }
@@ -1684,6 +1696,7 @@ function showApp() {
   renderAnswerHistory();
   showAppView("quiz");
   updateTimer();
+  recoverSubmittedAttempts();
   syncLocalSubmissionsToRemote();
   window.clearInterval(state.timerId);
   state.timerId = window.setInterval(() => {
@@ -1736,8 +1749,8 @@ async function autoSubmitExpiredAttempt() {
   state.autoSubmitting = false;
 }
 
-function saveSubmission(attempt) {
-  const submittedQuestions = availableQuestions();
+function buildSubmission(attempt, product = state.settings.activeProduct) {
+  const submittedQuestions = questionsForProduct(product);
   const answered = submittedQuestions.filter((item) => (state.answers[item.id] || "").trim()).length;
   const selectedIdentity = getTraineeIdentity();
   const rosterProfile = traineeProfile(state.currentUser.email);
@@ -1747,16 +1760,13 @@ function saveSubmission(attempt) {
     name: attempt.name || selectedIdentity.name || rosterProfile.name,
     position: attempt.position || selectedIdentity.position || rosterProfile.position,
   };
-  const submissions = getSubmissions().filter(
-    (item) => item.email !== state.currentUser.email || item.activeProduct !== state.settings.activeProduct,
-  );
   const durationSeconds = elapsedSeconds(attempt.startedAt, attempt.submittedAt);
-  const submission = {
+  return {
     name: profile.name,
     email: state.currentUser.email,
     position: profile.position,
     role: state.currentUser.role,
-    activeProduct: state.settings.activeProduct,
+    activeProduct: product,
     startedAt: attempt.startedAt || "",
     submittedAt: attempt.submittedAt,
     submitReason: attempt.submitReason || "manual",
@@ -1768,6 +1778,13 @@ function saveSubmission(attempt) {
     answers: { ...state.answers },
     googleFormStatus: "not_configured",
   };
+}
+
+function saveSubmission(attempt) {
+  const submission = buildSubmission(attempt, state.settings.activeProduct);
+  const submissions = getSubmissions().filter(
+    (item) => item.email !== state.currentUser.email || item.activeProduct !== state.settings.activeProduct,
+  );
   submissions.push(submission);
   saveSubmissions(submissions);
   renderOwnerDashboard();
