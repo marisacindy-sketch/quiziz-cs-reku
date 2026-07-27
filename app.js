@@ -58,6 +58,7 @@ const state = {
   fiveMinuteAlertShown: false,
   openResponseEmail: "",
   answers: {},
+  remoteSubmissionsLoaded: false,
 };
 
 function normalizeStoredSettings() {
@@ -342,10 +343,10 @@ function callSettingsConnector(url, action, settings = null) {
       if (payload?.ok && payload.settings) {
         state.settings = normalizeSettings({ ...state.settings, ...payload.settings });
         saveSettings();
-        resolve(true);
+        resolve(payload);
         return;
       }
-      resolve(false);
+      resolve(payload?.ok ? payload : false);
     };
 
     script.onerror = () => {
@@ -375,6 +376,54 @@ function publishRemoteSettings() {
     expectedEmails: state.settings.expectedEmails,
   };
   return callSettingsConnector(url, "save_settings", settings);
+}
+
+function mergeSubmissions(incoming = []) {
+  const byKey = new Map();
+  [...getSubmissions(), ...incoming].forEach((submission) => {
+    if (!submission?.email) return;
+    const product = submission.activeProduct || state.settings.activeProduct;
+    const month = String(submission.submittedAt || "").slice(0, 7);
+    const key = `${submission.email.toLowerCase()}__${product}__${month}`;
+    const existing = byKey.get(key);
+    if (!existing || new Date(submission.submittedAt || 0) >= new Date(existing.submittedAt || 0)) {
+      byKey.set(key, { ...submission, email: submission.email.toLowerCase(), activeProduct: product });
+    }
+  });
+  const merged = [...byKey.values()].sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+  saveSubmissions(merged);
+  return merged;
+}
+
+async function loadRemoteSubmissions() {
+  if (!isOwner()) return false;
+  const payload = await callSettingsConnector(activeConnectorUrl(), "get_submissions");
+  if (!payload?.ok || !Array.isArray(payload.submissions)) return false;
+  mergeSubmissions(payload.submissions);
+  state.remoteSubmissionsLoaded = true;
+  return true;
+}
+
+function publishRemoteSubmission(submission) {
+  if (!isValidConnectorUrl(state.googleForm.connectorUrl)) return Promise.resolve(false);
+  return fetch(state.googleForm.connectorUrl, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "save_submission",
+      submission,
+    }),
+  })
+    .then(() => true)
+    .catch(() => false);
+}
+
+function syncLocalSubmissionsToRemote() {
+  if (!isValidConnectorUrl(state.googleForm.connectorUrl)) return;
+  getSubmissions().forEach((submission) => {
+    publishRemoteSubmission(submission);
+  });
 }
 
 function getTraineePasswordStore() {
@@ -425,6 +474,12 @@ function showSettingsPanel(panelName = "quizControlsPanel") {
     button.classList.toggle("active", button.dataset.settingsPanel === panelName);
   });
   document.querySelector(".settings-card .drawer-head h2").textContent = panelTitles[panelName] || "Settings";
+  if (panelName === "responsesPanel" || panelName === "answerHistoryPanel") {
+    loadRemoteSubmissions().then(() => {
+      renderOwnerDashboard();
+      renderAnswerHistory();
+    });
+  }
   if (panelName === "answerHistoryPanel") renderAnswerHistory();
 }
 
@@ -1629,6 +1684,7 @@ function showApp() {
   renderAnswerHistory();
   showAppView("quiz");
   updateTimer();
+  syncLocalSubmissionsToRemote();
   window.clearInterval(state.timerId);
   state.timerId = window.setInterval(() => {
     updateTimer();
@@ -1657,6 +1713,7 @@ async function submitFinal(reason = "manual") {
   saveAnswers();
   saveAttempt(finalAttempt);
   const submission = saveSubmission(finalAttempt);
+  await publishRemoteSubmission(submission);
   await submitToGoogleForm(submission);
   renderAccess();
   renderProductLauncher();

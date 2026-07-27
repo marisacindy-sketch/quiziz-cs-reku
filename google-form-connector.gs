@@ -1,5 +1,6 @@
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
+var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
 var DEFAULT_TRAINEE_ROSTER = [
   'Frans William Tobing | frans.william@reku.id | Customer Success Associate',
   'Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate',
@@ -16,6 +17,10 @@ var DEFAULT_TRAINEE_ROSTER = [
 ].join('\n');
 
 function doGet(e) {
+  if (e.parameter && e.parameter.action === 'get_submissions') {
+    return submissionsResponse(e.parameter.callback);
+  }
+
   if (e.parameter && e.parameter.action === 'save_settings') {
     var settings = e.parameter.settings ? JSON.parse(e.parameter.settings) : {};
     return settingsResponse(e.parameter.callback, saveWeeklySettings(settings));
@@ -32,6 +37,10 @@ function doGet(e) {
 
 function doPost(e) {
   var payload = parsePayload(e);
+  if (payload.action === 'save_submission') {
+    return jsonResponse(saveRemoteSubmission(payload.submission || {}));
+  }
+
   if (payload.action === 'save_settings') {
     var settingsResult = saveWeeklySettings(payload.settings || {});
     return jsonResponse(settingsResult);
@@ -95,6 +104,64 @@ function settingsResponse(callback, payload) {
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return jsonResponse(payload);
+}
+
+function submissionsResponse(callback) {
+  var payload = { ok: true, submissions: readRemoteSubmissions() };
+  if (callback) {
+    return ContentService
+      .createTextOutput(String(callback) + '(' + JSON.stringify(payload) + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonResponse(payload);
+}
+
+function remoteSubmissionKey(submission) {
+  var email = String(submission.email || '').toLowerCase();
+  var product = String(submission.activeProduct || '');
+  var month = String(submission.submittedAt || '').slice(0, 7);
+  return [email, product, month].join('__');
+}
+
+function saveRemoteSubmission(submission) {
+  if (!submission || !submission.email) {
+    return { ok: false, error: 'Missing submission email.' };
+  }
+  var clean = Object.assign({}, submission);
+  clean.email = String(clean.email || '').toLowerCase();
+  clean.syncedAt = new Date().toISOString();
+
+  var submissions = readRemoteSubmissions();
+  var key = remoteSubmissionKey(clean);
+  submissions = submissions.filter(function(item) {
+    return remoteSubmissionKey(item) !== key;
+  });
+  submissions.push(clean);
+  submissions.sort(function(a, b) {
+    return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
+  });
+  writeRemoteSubmissions(submissions);
+  return { ok: true, submission: clean, count: submissions.length };
+}
+
+function submissionStoreFile() {
+  var files = DriveApp.getFilesByName(SUBMISSIONS_FILE_NAME);
+  if (files.hasNext()) return files.next();
+  return DriveApp.createFile(SUBMISSIONS_FILE_NAME, '[]', MimeType.PLAIN_TEXT);
+}
+
+function readRemoteSubmissions() {
+  try {
+    var text = submissionStoreFile().getBlob().getDataAsString() || '[]';
+    var parsed = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeRemoteSubmissions(submissions) {
+  submissionStoreFile().setContent(JSON.stringify(submissions || []));
 }
 
 function createOrUpdateMonthlyForm(payload) {
