@@ -1,8 +1,9 @@
 const OWNER_EMAIL = "marisa@reku.id";
 const OWNER_PASSWORD = "owner123";
 const DEFAULT_CONNECTOR_URL =
-  "https://script.google.com/a/macros/reku.id/s/AKfycbzXc5Sb2V_Y0xqOy8QlMru72QRolVD8C7NNlYG9ncuNX70---x4KOIar2e5qpivjYVy/exec";
+  "https://script.google.com/a/macros/reku.id/s/AKfycby5KWshRpW3p_7WgTeRrwZL-WQ25yeIAuItkao97EdpeB-c60ELCq7_uVUOajG3qjor/exec";
 const LEGACY_CONNECTOR_URLS = [
+  "https://script.google.com/a/macros/reku.id/s/AKfycbzXc5Sb2V_Y0xqOy8QlMru72QRolVD8C7NNlYG9ncuNX70---x4KOIar2e5qpivjYVy/exec",
   "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec",
 ];
 const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
