@@ -1,4 +1,4 @@
-var CONNECTOR_VERSION = '2026-07-27-v2';
+var CONNECTOR_VERSION = '2026-07-27-v3';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
@@ -43,6 +43,10 @@ function doPost(e) {
 
   if (action === 'save_submission') {
     return jsonResponse(saveRemoteSubmission(payload.submission || {}));
+  }
+
+  if (action === 'save_submissions') {
+    return jsonResponse(saveRemoteSubmissions(payload.submissions || []));
   }
 
   if (action === 'save_settings') {
@@ -103,21 +107,43 @@ function saveWeeklySettings(settings) {
 function saveRemoteSubmission(submission) {
   if (!submission || !submission.email) return { ok: false, version: CONNECTOR_VERSION, error: 'Missing submission email.' };
 
-  var clean = normalizeSubmission(submission);
+  var result = saveRemoteSubmissions([submission]);
+  if (!result.ok) return result;
+  return {
+    ok: true,
+    version: CONNECTOR_VERSION,
+    submission: result.saved[0],
+    count: result.count,
+  };
+}
+
+function saveRemoteSubmissions(submissionsToSave) {
+  if (!Array.isArray(submissionsToSave) || !submissionsToSave.length) {
+    return { ok: false, version: CONNECTOR_VERSION, error: 'No submissions to save.' };
+  }
+
+  var cleaned = submissionsToSave
+    .filter(function(submission) { return submission && submission.email; })
+    .map(normalizeSubmission);
+  if (!cleaned.length) return { ok: false, version: CONNECTOR_VERSION, error: 'Missing submission email.' };
+
   var lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     var submissions = readRemoteSubmissions();
-    var key = remoteSubmissionKey(clean);
-    submissions = submissions.filter(function(item) {
-      return remoteSubmissionKey(item) !== key;
+    var keys = {};
+    cleaned.forEach(function(item) {
+      keys[remoteSubmissionKey(item)] = true;
     });
-    submissions.push(clean);
+    submissions = submissions.filter(function(item) {
+      return !keys[remoteSubmissionKey(item)];
+    });
+    submissions = submissions.concat(cleaned);
     submissions.sort(function(a, b) {
       return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
     });
     writeRemoteSubmissions(submissions);
-    return { ok: true, version: CONNECTOR_VERSION, submission: clean, count: submissions.length };
+    return { ok: true, version: CONNECTOR_VERSION, saved: cleaned, count: submissions.length };
   } finally {
     lock.releaseLock();
   }

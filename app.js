@@ -505,16 +505,20 @@ async function syncSubmittedAttemptsToRemote(showStatus = false) {
   if (showStatus) {
     els.ownerPreviewButton.disabled = true;
     els.ownerPreviewButton.textContent = "Syncing...";
+    submitConnectorInNewTab(activeConnectorUrl(), {
+      action: "save_submissions",
+      submissions,
+    });
   }
   await Promise.all(submissions.map((submission) => publishRemoteSubmission(submission)));
   if (showStatus) {
-    await wait(2200);
+    await wait(5000);
     const synced = await remoteHasSubmissions(submissions);
     els.ownerPreviewButton.disabled = false;
     els.ownerPreviewButton.textContent = synced ? "Synced" : "Sync submitted answer";
     els.accessCopy.textContent = synced
       ? "Submitted answer synced. Ask the owner to refresh Responses or History."
-      : "Still not visible in the connector. Keep this page open and click Sync submitted answer once more.";
+      : "A Google sync tab opened. If it does not show ok:true, keep this page open and click Sync submitted answer once more.";
     window.setTimeout(() => {
       renderAccess();
     }, synced ? 1800 : 3200);
