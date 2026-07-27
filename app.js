@@ -405,8 +405,9 @@ async function loadRemoteSubmissions() {
 }
 
 function publishRemoteSubmission(submission) {
-  if (!isValidConnectorUrl(state.googleForm.connectorUrl)) return Promise.resolve(false);
-  return fetch(state.googleForm.connectorUrl, {
+  const url = activeConnectorUrl();
+  if (!isValidConnectorUrl(url)) return Promise.resolve(false);
+  return fetch(url, {
     method: "POST",
     mode: "no-cors",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -420,7 +421,7 @@ function publishRemoteSubmission(submission) {
 }
 
 function syncLocalSubmissionsToRemote() {
-  if (!isValidConnectorUrl(state.googleForm.connectorUrl)) return;
+  if (!isValidConnectorUrl(activeConnectorUrl())) return;
   getSubmissions().forEach((submission) => {
     publishRemoteSubmission(submission);
   });
