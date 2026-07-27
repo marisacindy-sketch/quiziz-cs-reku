@@ -1,4 +1,4 @@
-var CONNECTOR_VERSION = '2026-07-27-v4';
+var CONNECTOR_VERSION = '2026-07-27-v5';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
@@ -19,53 +19,47 @@ var DEFAULT_TRAINEE_ROSTER = [
 ].join('\n');
 
 function doGet(e) {
-  var action = (e.parameter && e.parameter.action) || '';
-  if (action === 'get_settings') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, settings: getWeeklySettings() });
-  if (action === 'save_settings') {
-    return jsonpOrJson(e, saveWeeklySettings(parseJson(e.parameter.settings, {})));
-  }
-  if (action === 'get_submissions') {
-    return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
-  }
-  if (action === 'save_submission') {
-    return jsonpOrJson(e, saveRemoteSubmission(parseJson(e.parameter.submission, {}).submission || parseJson(e.parameter.payload, {}).submission || {}));
-  }
-  if (action === 'save_submissions') {
-    return jsonpOrJson(e, saveRemoteSubmissions(parseJson(e.parameter.submissions, {}).submissions || parseJson(e.parameter.payload, {}).submissions || []));
+  try {
+    var action = (e.parameter && e.parameter.action) || '';
+    if (action === 'get_settings') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, settings: getWeeklySettings() });
+    if (action === 'save_settings') return jsonpOrJson(e, saveWeeklySettings(parseJson(e.parameter.settings, {})));
+    if (action === 'get_submissions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
+    if (action === 'save_submission') {
+      return jsonpOrJson(e, saveRemoteSubmission(parseJson(e.parameter.submission, {}).submission || parseJson(e.parameter.payload, {}).submission || {}));
+    }
+    if (action === 'save_submissions') {
+      return jsonpOrJson(e, saveRemoteSubmissions(parseJson(e.parameter.submissions, {}).submissions || parseJson(e.parameter.payload, {}).submissions || []));
+    }
+  } catch (error) {
+    return connectorPage({ ok: false, error: error.message, stack: error.stack });
   }
 
-  return HtmlService.createHtmlOutput(
-    '<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
-      '<h2>Quiziz CS Reku connector is live</h2>' +
-      '<p>Version: ' + escapeHtml(CONNECTOR_VERSION) + '</p>' +
-      '<p>Copy this Web app URL into Quiziz CS Reku.</p>' +
-    '</body></html>'
-  );
+  return connectorPage({ ok: true, live: true });
 }
 
 function doPost(e) {
-  var payload = parsePayload(e);
-  var action = payload.action || '';
+  try {
+    var payload = parsePayload(e);
+    var action = payload.action || '';
+    var result;
 
-  if (action === 'save_submission') {
-    return jsonResponse(saveRemoteSubmission(payload.submission || {}));
-  }
+    if (action === 'save_submission') result = saveRemoteSubmission(payload.submission || {});
+    else if (action === 'save_submissions') result = saveRemoteSubmissions(payload.submissions || []);
+    else if (action === 'save_settings') result = saveWeeklySettings(payload.settings || {});
+    else if (action === 'create_or_update_monthly_form') result = createOrUpdateMonthlyForm(payload);
+    else result = { ok: false, version: CONNECTOR_VERSION, error: 'Unsupported action: ' + action };
 
-  if (action === 'save_submissions') {
-    return jsonResponse(saveRemoteSubmissions(payload.submissions || []));
-  }
+    if (e.parameter && e.parameter.payload) {
+      if (action === 'create_or_update_monthly_form') return redirectPage(result);
+      return connectorPage(result);
+    }
 
-  if (action === 'save_settings') {
-    return jsonResponse(saveWeeklySettings(payload.settings || {}));
-  }
-
-  if (action === 'create_or_update_monthly_form') {
-    var result = createOrUpdateMonthlyForm(payload);
-    if (e.parameter && e.parameter.payload) return redirectPage(result);
     return jsonResponse(result);
+  } catch (error) {
+    var failed = { ok: false, version: CONNECTOR_VERSION, error: error.message, stack: error.stack };
+    if (e && e.parameter && e.parameter.payload) return connectorPage(failed);
+    return jsonResponse(failed);
   }
-
-  return jsonResponse({ ok: false, version: CONNECTOR_VERSION, error: 'Unsupported action: ' + action });
 }
 
 function parsePayload(e) {
@@ -153,6 +147,27 @@ function saveRemoteSubmissions(submissionsToSave) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function connectorPage(result) {
+  var ok = Boolean(result && result.ok);
+  var title = ok
+    ? (result.live ? 'Quiziz CS Reku connector is live' : 'Quiziz sync saved')
+    : 'Quiziz sync failed';
+  var saved = result && result.saved ? result.saved.length : result && result.submission ? 1 : 0;
+  var count = result && result.count !== undefined ? result.count : '-';
+  var error = result && result.error ? '<p style="color:#b42318;"><strong>Error:</strong> ' + escapeHtml(result.error) + '</p>' : '';
+  var stack = result && result.stack ? '<pre style="white-space:pre-wrap;background:#fff4f4;border:1px solid #ffd0d0;padding:12px;border-radius:8px;">' + escapeHtml(result.stack) + '</pre>' : '';
+  var html =
+    '<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
+    '<h2>' + escapeHtml(title) + '</h2>' +
+    '<p>Version: ' + escapeHtml(CONNECTOR_VERSION) + '</p>' +
+    (ok && !result.live ? '<p><strong>ok:true</strong></p><p>Saved submissions: ' + saved + '</p><p>Total stored: ' + count + '</p>' : '') +
+    (ok && result.live ? '<p>Copy this Web app URL into Quiziz CS Reku.</p>' : '') +
+    error +
+    stack +
+    '</body></html>';
+  return HtmlService.createHtmlOutput(html);
 }
 
 function normalizeSubmission(submission) {

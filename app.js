@@ -519,7 +519,7 @@ async function syncSubmittedAttemptsToRemote(showStatus = false) {
     els.ownerPreviewButton.textContent = synced ? "Synced" : "Sync submitted answer";
     els.accessCopy.textContent = synced
       ? "Submitted answer synced. Ask the owner to refresh Responses or History."
-      : "A Google sync tab opened. If it does not show ok:true, keep this page open and click Sync submitted answer once more.";
+      : "A Google sync tab opened. If it says Quiziz sync saved / ok:true, ask the owner to refresh Responses or History.";
     window.setTimeout(() => {
       renderAccess();
     }, synced ? 1800 : 3200);
