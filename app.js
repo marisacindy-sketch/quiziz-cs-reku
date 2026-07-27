@@ -413,18 +413,75 @@ async function loadRemoteSubmissions() {
 function publishRemoteSubmission(submission) {
   const url = activeConnectorUrl();
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
+  const payload = {
+    action: "save_submission",
+    submission,
+  };
+  postConnectorPayload(url, payload);
   return fetch(url, {
     method: "POST",
     mode: "no-cors",
     credentials: "include",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({
-      action: "save_submission",
-      submission,
-    }),
+    body: JSON.stringify(payload),
   })
     .then(() => true)
     .catch(() => false);
+}
+
+function postConnectorPayload(url, payload) {
+  if (!isValidConnectorUrl(url)) return false;
+  const iframe = document.createElement("iframe");
+  const frameName = `quiziz-sync-${Date.now()}-${Math.round(Math.random() * 10000)}`;
+  iframe.name = frameName;
+  iframe.hidden = true;
+  iframe.style.display = "none";
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
+  form.target = frameName;
+  form.style.display = "none";
+
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(payload);
+  form.appendChild(input);
+
+  document.body.appendChild(iframe);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+  window.setTimeout(() => {
+    iframe.remove();
+  }, 8000);
+  return true;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function remoteHasSubmissions(submissions) {
+  const payload = await callSettingsConnector(activeConnectorUrl(), "get_submissions");
+  if (!payload?.ok || !Array.isArray(payload.submissions)) return false;
+  const remoteKeys = new Set(
+    payload.submissions.map((submission) => {
+      const email = String(submission.email || "").toLowerCase();
+      const product = submission.activeProduct || "";
+      const month = String(submission.submittedAt || "").slice(0, 7);
+      return `${email}__${product}__${month}`;
+    }),
+  );
+  return submissions.every((submission) => {
+    const email = String(submission.email || "").toLowerCase();
+    const product = submission.activeProduct || "";
+    const month = String(submission.submittedAt || "").slice(0, 7);
+    return remoteKeys.has(`${email}__${product}__${month}`);
+  });
 }
 
 function syncLocalSubmissionsToRemote() {
@@ -451,12 +508,16 @@ async function syncSubmittedAttemptsToRemote(showStatus = false) {
   }
   await Promise.all(submissions.map((submission) => publishRemoteSubmission(submission)));
   if (showStatus) {
+    await wait(2200);
+    const synced = await remoteHasSubmissions(submissions);
     els.ownerPreviewButton.disabled = false;
-    els.ownerPreviewButton.textContent = "Synced";
-    els.accessCopy.textContent = "Submitted answer synced. Ask the owner to refresh Responses or History.";
+    els.ownerPreviewButton.textContent = synced ? "Synced" : "Sync submitted answer";
+    els.accessCopy.textContent = synced
+      ? "Submitted answer synced. Ask the owner to refresh Responses or History."
+      : "Still not visible in the connector. Keep this page open and click Sync submitted answer once more.";
     window.setTimeout(() => {
       renderAccess();
-    }, 1800);
+    }, synced ? 1800 : 3200);
   }
   return submissions;
 }
