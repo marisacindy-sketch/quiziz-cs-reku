@@ -27,6 +27,12 @@ function doGet(e) {
   if (action === 'get_submissions') {
     return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
   }
+  if (action === 'save_submission') {
+    return jsonpOrJson(e, saveRemoteSubmission(parseJson(e.parameter.submission, {}).submission || parseJson(e.parameter.payload, {}).submission || {}));
+  }
+  if (action === 'save_submissions') {
+    return jsonpOrJson(e, saveRemoteSubmissions(parseJson(e.parameter.submissions, {}).submissions || parseJson(e.parameter.payload, {}).submissions || []));
+  }
 
   return HtmlService.createHtmlOutput(
     '<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +

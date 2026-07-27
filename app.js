@@ -506,7 +506,7 @@ async function syncSubmittedAttemptsToRemote(showStatus = false) {
   if (showStatus) {
     els.ownerPreviewButton.disabled = true;
     els.ownerPreviewButton.textContent = "Syncing...";
-    submitConnectorInNewTab(activeConnectorUrl(), {
+    openConnectorPayloadTab(activeConnectorUrl(), {
       action: "save_submissions",
       submissions,
     });
@@ -2146,6 +2146,16 @@ function submitConnectorInNewTab(url, payload) {
   document.body.appendChild(form);
   form.submit();
   form.remove();
+}
+
+function openConnectorPayloadTab(url, payload) {
+  if (!isValidConnectorUrl(url)) return false;
+  const params = new URLSearchParams({
+    action: payload.action,
+    payload: JSON.stringify(payload),
+  });
+  window.open(`${url}?${params.toString()}`, "_blank", "noopener");
+  return true;
 }
 
 function saveGoogleFormConfigFromForm() {
