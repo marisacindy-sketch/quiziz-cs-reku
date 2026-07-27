@@ -2,6 +2,9 @@ const OWNER_EMAIL = "marisa@reku.id";
 const OWNER_PASSWORD = "owner123";
 const DEFAULT_CONNECTOR_URL =
   "https://script.google.com/a/macros/reku.id/s/AKfycbzXc5Sb2V_Y0xqOy8QlMru72QRolVD8C7NNlYG9ncuNX70---x4KOIar2e5qpivjYVy/exec";
+const LEGACY_CONNECTOR_URLS = [
+  "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec",
+];
 const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
 const POSITION_OPTIONS = ["Customer Success Associate", "Customer Success Squad Lead / QC"];
 const DEFAULT_TRAINEE_ROSTER = [
@@ -67,7 +70,10 @@ function normalizeStoredSettings() {
 
 function normalizeGoogleFormConfig(config) {
   const rawConnectorUrl = config?.connectorUrl || config?.actionUrl || DEFAULT_CONNECTOR_URL;
-  const connectorUrl = isValidConnectorUrl(rawConnectorUrl) ? rawConnectorUrl : DEFAULT_CONNECTOR_URL;
+  const connectorUrl =
+    isValidConnectorUrl(rawConnectorUrl) && !LEGACY_CONNECTOR_URLS.includes(rawConnectorUrl)
+      ? rawConnectorUrl
+      : DEFAULT_CONNECTOR_URL;
   return {
     ...defaultGoogleFormConfig,
     ...(config || {}),
@@ -410,6 +416,7 @@ function publishRemoteSubmission(submission) {
   return fetch(url, {
     method: "POST",
     mode: "no-cors",
+    credentials: "include",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       action: "save_submission",
