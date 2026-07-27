@@ -1,3 +1,4 @@
+var CONNECTOR_VERSION = '2026-07-27-v2';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
@@ -14,54 +15,61 @@ var DEFAULT_TRAINEE_ROSTER = [
   'Rizky Afrianzie | rizky.afrianzie@reku.id | Customer Success Associate',
   'Tasya Salma Ramdini Putri | tasya.salma@reku.id | Customer Success Associate',
   'Willyansya Heka | willyansyaheka@reku.id | Customer Success Associate',
+  'Squad Lead Name | lead@reku.id | Customer Success Squad Lead / QC',
 ].join('\n');
 
 function doGet(e) {
-  if (e.parameter && e.parameter.action === 'get_submissions') {
-    return submissionsResponse(e.parameter.callback);
+  var action = (e.parameter && e.parameter.action) || '';
+  if (action === 'get_settings') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, settings: getWeeklySettings() });
+  if (action === 'save_settings') {
+    return jsonpOrJson(e, saveWeeklySettings(parseJson(e.parameter.settings, {})));
   }
-
-  if (e.parameter && e.parameter.action === 'save_settings') {
-    var settings = e.parameter.settings ? JSON.parse(e.parameter.settings) : {};
-    return settingsResponse(e.parameter.callback, saveWeeklySettings(settings));
-  }
-
-  if (e.parameter && e.parameter.action === 'get_settings') {
-    return settingsResponse(e.parameter.callback);
+  if (action === 'get_submissions') {
+    return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
   }
 
   return HtmlService.createHtmlOutput(
-    '<p>Quiziz CS Reku connector is live. Copy this web app URL into the Quiziz Google Form connector field.</p>'
+    '<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
+      '<h2>Quiziz CS Reku connector is live</h2>' +
+      '<p>Version: ' + escapeHtml(CONNECTOR_VERSION) + '</p>' +
+      '<p>Copy this Web app URL into Quiziz CS Reku.</p>' +
+    '</body></html>'
   );
 }
 
 function doPost(e) {
   var payload = parsePayload(e);
-  if (payload.action === 'save_submission') {
+  var action = payload.action || '';
+
+  if (action === 'save_submission') {
     return jsonResponse(saveRemoteSubmission(payload.submission || {}));
   }
 
-  if (payload.action === 'save_settings') {
-    var settingsResult = saveWeeklySettings(payload.settings || {});
-    return jsonResponse(settingsResult);
+  if (action === 'save_settings') {
+    return jsonResponse(saveWeeklySettings(payload.settings || {}));
   }
 
-  if (payload.action !== 'create_or_update_monthly_form') {
-    return jsonResponse({ ok: false, error: 'Unsupported action.' });
+  if (action === 'create_or_update_monthly_form') {
+    var result = createOrUpdateMonthlyForm(payload);
+    if (e.parameter && e.parameter.payload) return redirectPage(result);
+    return jsonResponse(result);
   }
 
-  var result = createOrUpdateMonthlyForm(payload);
-  if (e.parameter && e.parameter.payload) {
-    return redirectPage(result);
-  }
-  return jsonResponse(result);
+  return jsonResponse({ ok: false, version: CONNECTOR_VERSION, error: 'Unsupported action: ' + action });
 }
 
 function parsePayload(e) {
-  if (e.parameter && e.parameter.payload) {
-    return JSON.parse(e.parameter.payload);
+  if (e.parameter && e.parameter.payload) return parseJson(e.parameter.payload, {});
+  if (e.postData && e.postData.contents) return parseJson(e.postData.contents, {});
+  return e.parameter || {};
+}
+
+function parseJson(text, fallback) {
+  try {
+    return JSON.parse(String(text || ''));
+  } catch (error) {
+    return fallback;
   }
-  return JSON.parse((e.postData && e.postData.contents) || '{}');
 }
 
 function defaultWeeklySettings() {
@@ -77,43 +85,56 @@ function defaultWeeklySettings() {
 }
 
 function getWeeklySettings() {
-  var raw = PropertiesService.getUserProperties().getProperty(SETTINGS_KEY);
+  var raw = PropertiesService.getScriptProperties().getProperty(SETTINGS_KEY);
   if (!raw) return defaultWeeklySettings();
-  try {
-    var settings = Object.assign(defaultWeeklySettings(), JSON.parse(raw));
-    if (!String(settings.expectedEmails || '').trim()) settings.expectedEmails = DEFAULT_TRAINEE_ROSTER;
-    return settings;
-  } catch (error) {
-    return defaultWeeklySettings();
-  }
+  var settings = Object.assign(defaultWeeklySettings(), parseJson(raw, {}));
+  if (!String(settings.expectedEmails || '').trim()) settings.expectedEmails = DEFAULT_TRAINEE_ROSTER;
+  return settings;
 }
 
 function saveWeeklySettings(settings) {
   var next = Object.assign(defaultWeeklySettings(), settings || {});
   if (!String(next.expectedEmails || '').trim()) next.expectedEmails = DEFAULT_TRAINEE_ROSTER;
   next.updatedAt = new Date().toISOString();
-  PropertiesService.getUserProperties().setProperty(SETTINGS_KEY, JSON.stringify(next));
-  return { ok: true, settings: next };
+  PropertiesService.getScriptProperties().setProperty(SETTINGS_KEY, JSON.stringify(next));
+  return { ok: true, version: CONNECTOR_VERSION, settings: next };
 }
 
-function settingsResponse(callback, payload) {
-  payload = payload || { ok: true, settings: getWeeklySettings() };
-  if (callback) {
-    return ContentService
-      .createTextOutput(String(callback) + '(' + JSON.stringify(payload) + ');')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+function saveRemoteSubmission(submission) {
+  if (!submission || !submission.email) return { ok: false, version: CONNECTOR_VERSION, error: 'Missing submission email.' };
+
+  var clean = normalizeSubmission(submission);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var submissions = readRemoteSubmissions();
+    var key = remoteSubmissionKey(clean);
+    submissions = submissions.filter(function(item) {
+      return remoteSubmissionKey(item) !== key;
+    });
+    submissions.push(clean);
+    submissions.sort(function(a, b) {
+      return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
+    });
+    writeRemoteSubmissions(submissions);
+    return { ok: true, version: CONNECTOR_VERSION, submission: clean, count: submissions.length };
+  } finally {
+    lock.releaseLock();
   }
-  return jsonResponse(payload);
 }
 
-function submissionsResponse(callback) {
-  var payload = { ok: true, submissions: readRemoteSubmissions() };
-  if (callback) {
-    return ContentService
-      .createTextOutput(String(callback) + '(' + JSON.stringify(payload) + ');')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return jsonResponse(payload);
+function normalizeSubmission(submission) {
+  var clean = Object.assign({}, submission);
+  clean.email = String(clean.email || '').trim().toLowerCase();
+  clean.activeProduct = clean.activeProduct || getWeeklySettings().activeProduct || 'General';
+  clean.submittedAt = clean.submittedAt || new Date().toISOString();
+  clean.answers = clean.answers || {};
+  clean.syncedAt = new Date().toISOString();
+
+  var profile = profileFromRoster(clean.email);
+  clean.name = clean.name || profile.name || nameFromEmail(clean.email);
+  clean.position = clean.position || profile.position || '';
+  return clean;
 }
 
 function remoteSubmissionKey(submission) {
@@ -121,33 +142,6 @@ function remoteSubmissionKey(submission) {
   var product = String(submission.activeProduct || '');
   var month = String(submission.submittedAt || '').slice(0, 7);
   return [email, product, month].join('__');
-}
-
-function saveRemoteSubmission(submission) {
-  if (!submission || !submission.email) {
-    return { ok: false, error: 'Missing submission email.' };
-  }
-  var clean = Object.assign({}, submission);
-  clean.email = String(clean.email || '').toLowerCase();
-  clean.syncedAt = new Date().toISOString();
-
-  var submissions = readRemoteSubmissions();
-  var key = remoteSubmissionKey(clean);
-  submissions = submissions.filter(function(item) {
-    return remoteSubmissionKey(item) !== key;
-  });
-  submissions.push(clean);
-  submissions.sort(function(a, b) {
-    return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
-  });
-  writeRemoteSubmissions(submissions);
-  return { ok: true, submission: clean, count: submissions.length };
-}
-
-function submissionStoreFile() {
-  var files = DriveApp.getFilesByName(SUBMISSIONS_FILE_NAME);
-  if (files.hasNext()) return files.next();
-  return DriveApp.createFile(SUBMISSIONS_FILE_NAME, '[]', MimeType.PLAIN_TEXT);
 }
 
 function readRemoteSubmissions() {
@@ -161,11 +155,17 @@ function readRemoteSubmissions() {
 }
 
 function writeRemoteSubmissions(submissions) {
-  submissionStoreFile().setContent(JSON.stringify(submissions || []));
+  submissionStoreFile().setContent(JSON.stringify(submissions || [], null, 2));
+}
+
+function submissionStoreFile() {
+  var files = DriveApp.getFilesByName(SUBMISSIONS_FILE_NAME);
+  if (files.hasNext()) return files.next();
+  return DriveApp.createFile(SUBMISSIONS_FILE_NAME, '[]', MimeType.PLAIN_TEXT);
 }
 
 function createOrUpdateMonthlyForm(payload) {
-  var props = PropertiesService.getUserProperties();
+  var props = PropertiesService.getScriptProperties();
   var key = 'quiziz-form-' + payload.month + '-' + payload.product;
   var existingId = props.getProperty(key);
   var form = existingId ? FormApp.openById(existingId) : FormApp.create(payload.formTitle);
@@ -192,20 +192,22 @@ function createOrUpdateMonthlyForm(payload) {
     form.deleteItem(item);
   });
 
-  var roster = payload.roster || [];
+  var roster = normalizeRoster(payload.roster || rosterFromText(getWeeklySettings().expectedEmails));
   var positionChoices = uniqueValues(roster.map(function(person) { return person.position; })).filter(Boolean);
   var nameChoices = uniqueValues(roster.map(function(person) { return person.name; })).filter(Boolean);
-  if (!positionChoices.length) positionChoices = ['Customer Success Associate'];
+  if (positionChoices.indexOf('Customer Success Associate') === -1) positionChoices.unshift('Customer Success Associate');
+  if (positionChoices.indexOf('Customer Success Squad Lead / QC') === -1) positionChoices.push('Customer Success Squad Lead / QC');
   if (!nameChoices.length) nameChoices = ['Name'];
 
   var emailItem = form.addTextItem().setTitle('Email').setRequired(true);
-  var positionItem = form.addListItem().setTitle('Posisi').setChoiceValues(positionChoices);
-  var nameItem = form.addListItem().setTitle('Nama').setChoiceValues(nameChoices);
+  var positionItem = form.addListItem().setTitle('Posisi').setChoiceValues(positionChoices).setRequired(true);
+  var nameItem = form.addListItem().setTitle('Nama').setChoiceValues(nameChoices).setRequired(true);
   var questionItems = (payload.questions || []).map(function(question) {
     var item = form
       .addParagraphTextItem()
       .setTitle(question.title)
-      .setHelpText(question.question || '');
+      .setHelpText(question.question || '')
+      .setRequired(true);
 
     try {
       item.setPoints(Number(question.points || 10));
@@ -215,10 +217,11 @@ function createOrUpdateMonthlyForm(payload) {
   });
 
   (payload.responses || []).forEach(function(response) {
+    var profile = profileFromRoster(response.email || '');
     var formResponse = form.createResponse();
     formResponse.withItemResponse(emailItem.createResponse(response.email || ''));
-    formResponse.withItemResponse(positionItem.createResponse(choiceOrDefault(response.position, positionChoices)));
-    formResponse.withItemResponse(nameItem.createResponse(choiceOrDefault(response.name, nameChoices)));
+    formResponse.withItemResponse(positionItem.createResponse(choiceOrDefault(response.position || profile.position, positionChoices)));
+    formResponse.withItemResponse(nameItem.createResponse(choiceOrDefault(response.name || profile.name, nameChoices)));
 
     (response.answers || []).forEach(function(answer, index) {
       if (questionItems[index]) {
@@ -230,15 +233,62 @@ function createOrUpdateMonthlyForm(payload) {
   });
 
   var shareStatus = shareFormWithEditors(form);
-
   return {
     ok: true,
+    version: CONNECTOR_VERSION,
     editUrl: form.getEditUrl(),
     liveUrl: form.getPublishedUrl(),
     formId: form.getId(),
     title: form.getTitle(),
     shareStatus: shareStatus,
   };
+}
+
+function profileFromRoster(email) {
+  var target = String(email || '').trim().toLowerCase();
+  var found = rosterFromText(getWeeklySettings().expectedEmails).filter(function(person) {
+    return String(person.email || '').toLowerCase() === target;
+  })[0];
+  return found || { name: '', email: target, position: '' };
+}
+
+function rosterFromText(text) {
+  return String(text || '')
+    .split(/\n+/)
+    .map(function(line) {
+      var parts = line.split('|').map(function(part) { return String(part || '').trim(); }).filter(Boolean);
+      var emailIndex = parts.findIndex(function(part) { return /@/.test(part); });
+      if (emailIndex === -1) return null;
+      var email = parts[emailIndex].toLowerCase();
+      return {
+        name: parts[emailIndex - 1] || nameFromEmail(email),
+        email: email,
+        position: parts[emailIndex + 1] || '',
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeRoster(roster) {
+  if (!Array.isArray(roster)) return [];
+  return roster.map(function(person) {
+    var email = String(person.email || '').trim().toLowerCase();
+    if (!email) return null;
+    return {
+      name: String(person.name || nameFromEmail(email)).trim(),
+      email: email,
+      position: String(person.position || '').trim(),
+    };
+  }).filter(Boolean);
+}
+
+function nameFromEmail(email) {
+  return String(email || '')
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map(function(part) { return part.charAt(0).toUpperCase() + part.slice(1); })
+    .join(' ');
 }
 
 function uniqueValues(values) {
@@ -259,34 +309,26 @@ function choiceOrDefault(value, choices) {
 
 function shareFormWithEditors(form) {
   var status = [];
-  try {
-    FORM_EDITORS.forEach(function(email) {
-      try {
-        form.addEditor(email);
-        status.push(email + ': form editor added');
-      } catch (error) {
-        status.push(email + ': form editor failed - ' + error.message);
-      }
-    });
-  } catch (error) {
-    status.push('Form editor sharing failed - ' + error.message);
-  }
-
-  try {
-    var file = DriveApp.getFileById(form.getId());
-    FORM_EDITORS.forEach(function(email) {
-      try {
-        file.addEditor(email);
-        status.push(email + ': drive editor added');
-      } catch (error) {
-        status.push(email + ': drive editor failed - ' + error.message);
-      }
-    });
-  } catch (error) {
-    status.push('Drive sharing skipped - ' + error.message);
-  }
-
+  FORM_EDITORS.forEach(function(email) {
+    try {
+      form.addEditor(email);
+      DriveApp.getFileById(form.getId()).addEditor(email);
+      status.push(email + ': editor added');
+    } catch (error) {
+      status.push(email + ': editor failed - ' + error.message);
+    }
+  });
   return status;
+}
+
+function jsonpOrJson(e, data) {
+  var callback = e.parameter && e.parameter.callback;
+  if (callback) {
+    return ContentService
+      .createTextOutput(String(callback) + '(' + JSON.stringify(data) + ');')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonResponse(data);
 }
 
 function redirectPage(result) {
@@ -296,10 +338,10 @@ function redirectPage(result) {
     return '<li>' + escapeHtml(line) + '</li>';
   }).join('');
   var html =
-    '<!doctype html><html><head><base target="_top">' +
-    '</head><body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
+    '<!doctype html><html><head><base target="_top"></head>' +
+    '<body style="font-family:Arial,sans-serif;padding:24px;line-height:1.45;">' +
     '<h2>Google Form is ready</h2>' +
-    '<p>The connector created or updated the Form and tried to add editor access for the owner emails.</p>' +
+    '<p>The connector created or updated the Form and imported the selected responses.</p>' +
     '<p><a style="display:inline-block;padding:12px 16px;border-radius:8px;background:#159f7a;color:#fff;text-decoration:none;" href="' +
     escapeHtml(editUrl) +
     '" target="_blank">Open Google Form editor</a></p>' +
