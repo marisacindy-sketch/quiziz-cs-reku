@@ -1,7 +1,8 @@
-var CONNECTOR_VERSION = '2026-07-27-v5';
+var CONNECTOR_VERSION = '2026-07-27-v6';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
-var SUBMISSIONS_FILE_NAME = 'quiziz-cs-reku-submissions.json';
+var SUBMISSIONS_KEY_PREFIX = 'quiziz-cs-reku-submissions';
+var SUBMISSIONS_CHUNK_SIZE = 7000;
 var DEFAULT_TRAINEE_ROSTER = [
   'Frans William Tobing | frans.william@reku.id | Customer Success Associate',
   'Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate',
@@ -193,7 +194,7 @@ function remoteSubmissionKey(submission) {
 
 function readRemoteSubmissions() {
   try {
-    var text = submissionStoreFile().getBlob().getDataAsString() || '[]';
+    var text = readLargeProperty(SUBMISSIONS_KEY_PREFIX) || '[]';
     var parsed = JSON.parse(text);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
@@ -202,13 +203,33 @@ function readRemoteSubmissions() {
 }
 
 function writeRemoteSubmissions(submissions) {
-  submissionStoreFile().setContent(JSON.stringify(submissions || [], null, 2));
+  writeLargeProperty(SUBMISSIONS_KEY_PREFIX, JSON.stringify(submissions || []));
 }
 
-function submissionStoreFile() {
-  var files = DriveApp.getFilesByName(SUBMISSIONS_FILE_NAME);
-  if (files.hasNext()) return files.next();
-  return DriveApp.createFile(SUBMISSIONS_FILE_NAME, '[]', MimeType.PLAIN_TEXT);
+function readLargeProperty(prefix) {
+  var props = PropertiesService.getScriptProperties();
+  var count = Number(props.getProperty(prefix + '-chunks') || 0);
+  if (!count) return props.getProperty(prefix) || '';
+  var parts = [];
+  for (var index = 0; index < count; index += 1) {
+    parts.push(props.getProperty(prefix + '-' + index) || '');
+  }
+  return parts.join('');
+}
+
+function writeLargeProperty(prefix, value) {
+  var props = PropertiesService.getScriptProperties();
+  var previousCount = Number(props.getProperty(prefix + '-chunks') || 0);
+  var text = String(value || '');
+  var nextCount = Math.max(1, Math.ceil(text.length / SUBMISSIONS_CHUNK_SIZE));
+  for (var index = 0; index < nextCount; index += 1) {
+    props.setProperty(prefix + '-' + index, text.slice(index * SUBMISSIONS_CHUNK_SIZE, (index + 1) * SUBMISSIONS_CHUNK_SIZE));
+  }
+  for (var cleanup = nextCount; cleanup < previousCount; cleanup += 1) {
+    props.deleteProperty(prefix + '-' + cleanup);
+  }
+  props.setProperty(prefix + '-chunks', String(nextCount));
+  props.deleteProperty(prefix);
 }
 
 function createOrUpdateMonthlyForm(payload) {
@@ -359,7 +380,6 @@ function shareFormWithEditors(form) {
   FORM_EDITORS.forEach(function(email) {
     try {
       form.addEditor(email);
-      DriveApp.getFileById(form.getId()).addEditor(email);
       status.push(email + ': editor added');
     } catch (error) {
       status.push(email + ': editor failed - ' + error.message);
