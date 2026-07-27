@@ -2150,11 +2150,7 @@ function submitConnectorInNewTab(url, payload) {
 
 function openConnectorPayloadTab(url, payload) {
   if (!isValidConnectorUrl(url)) return false;
-  const params = new URLSearchParams({
-    action: payload.action,
-    payload: JSON.stringify(payload),
-  });
-  window.open(`${url}?${params.toString()}`, "_blank", "noopener");
+  submitConnectorInNewTab(url, payload);
   return true;
 }
 
