@@ -434,16 +434,41 @@ function syncLocalSubmissionsToRemote() {
   });
 }
 
+async function syncSubmittedAttemptsToRemote(showStatus = false) {
+  if (!state.currentUser || isOwner() || !isValidConnectorUrl(activeConnectorUrl())) return [];
+  const submissions = PRODUCT_ORDER.map((product) => {
+    const attempt = getAttempt(product);
+    if (!attempt?.submittedAt) return null;
+    const submission = getSubmission(state.currentUser.email, product) || buildSubmission(attempt, product);
+    return { ...submission, activeProduct: product };
+  }).filter(Boolean);
+
+  if (!submissions.length) return [];
+  mergeSubmissions(submissions);
+  if (showStatus) {
+    els.ownerPreviewButton.disabled = true;
+    els.ownerPreviewButton.textContent = "Syncing...";
+  }
+  await Promise.all(submissions.map((submission) => publishRemoteSubmission(submission)));
+  if (showStatus) {
+    els.ownerPreviewButton.disabled = false;
+    els.ownerPreviewButton.textContent = "Synced";
+    els.accessCopy.textContent = "Submitted answer synced. Ask the owner to refresh Responses or History.";
+    window.setTimeout(() => {
+      renderAccess();
+    }, 1800);
+  }
+  return submissions;
+}
+
 function recoverSubmittedAttempts() {
   if (!state.currentUser || isOwner()) return;
-  PRODUCT_ORDER.forEach((product) => {
+  const recovered = PRODUCT_ORDER.map((product) => {
     const attempt = getAttempt(product);
-    if (!attempt?.submittedAt) return;
-    const exists = getSubmission(state.currentUser.email, product);
-    if (exists) return;
-    const recovered = buildSubmission(attempt, product);
-    mergeSubmissions([recovered]);
-  });
+    if (!attempt?.submittedAt) return null;
+    return getSubmission(state.currentUser.email, product) || buildSubmission(attempt, product);
+  }).filter(Boolean);
+  if (recovered.length) mergeSubmissions(recovered);
 }
 
 function getTraineePasswordStore() {
@@ -1044,6 +1069,9 @@ function renderAccess() {
     els.accessStatus.textContent = "Locked in";
     els.accessTitle.textContent = "Your final answers are in.";
     els.accessCopy.textContent = "Nice. This attempt is sealed, so nothing changes after submission.";
+    els.ownerPreviewButton.hidden = false;
+    els.ownerPreviewButton.disabled = false;
+    els.ownerPreviewButton.textContent = "Sync submitted answer";
   } else if (access.expired) {
     els.accessStatus.textContent = "Clock’s done";
     els.accessTitle.textContent = "Time ran out, so the quiz closed.";
@@ -1706,6 +1734,7 @@ function showApp() {
   updateTimer();
   recoverSubmittedAttempts();
   syncLocalSubmissionsToRemote();
+  syncSubmittedAttemptsToRemote();
   window.clearInterval(state.timerId);
   state.timerId = window.setInterval(() => {
     updateTimer();
@@ -2195,6 +2224,10 @@ function initEvents() {
   });
 
   els.ownerPreviewButton.addEventListener("click", () => {
+    if (!isOwner()) {
+      syncSubmittedAttemptsToRemote(true);
+      return;
+    }
     state.ownerPreview = true;
     renderAccess();
     updateTimer();
