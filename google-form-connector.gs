@@ -1,8 +1,10 @@
-var CONNECTOR_VERSION = '2026-07-27-v6';
+var CONNECTOR_VERSION = '2026-07-31-v7';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
+var QUESTIONS_KEY_PREFIX = 'quiziz-cs-reku-questions';
 var SUBMISSIONS_KEY_PREFIX = 'quiziz-cs-reku-submissions';
-var SUBMISSIONS_CHUNK_SIZE = 7000;
+var STORE_CHUNK_SIZE = 7000;
+var PRODUCT_ORDER = ['General', 'Kripto Spot', 'US Stock', 'Perpetuals'];
 var DEFAULT_TRAINEE_ROSTER = [
   'Frans William Tobing | frans.william@reku.id | Customer Success Associate',
   'Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate',
@@ -24,6 +26,7 @@ function doGet(e) {
     var action = (e.parameter && e.parameter.action) || '';
     if (action === 'get_settings') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, settings: getWeeklySettings() });
     if (action === 'save_settings') return jsonpOrJson(e, saveWeeklySettings(parseJson(e.parameter.settings, {})));
+    if (action === 'get_questions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, questions: readRemoteQuestions() });
     if (action === 'get_submissions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
     if (action === 'save_submission') {
       return jsonpOrJson(e, saveRemoteSubmission(parseJson(e.parameter.submission, {}).submission || parseJson(e.parameter.payload, {}).submission || {}));
@@ -47,6 +50,7 @@ function doPost(e) {
     if (action === 'save_submission') result = saveRemoteSubmission(payload.submission || {});
     else if (action === 'save_submissions') result = saveRemoteSubmissions(payload.submissions || []);
     else if (action === 'save_settings') result = saveWeeklySettings(payload.settings || {});
+    else if (action === 'save_questions') result = saveRemoteQuestions(payload.questions || []);
     else if (action === 'create_or_update_monthly_form') result = createOrUpdateMonthlyForm(payload);
     else result = { ok: false, version: CONNECTOR_VERSION, error: 'Unsupported action: ' + action };
 
@@ -150,6 +154,38 @@ function saveRemoteSubmissions(submissionsToSave) {
   }
 }
 
+function readRemoteQuestions() {
+  try {
+    var text = readLargeProperty(QUESTIONS_KEY_PREFIX) || '[]';
+    var parsed = JSON.parse(text);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(normalizeQuestion).filter(function(question) {
+      return question.id && question.product && question.question;
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveRemoteQuestions(questionsToSave) {
+  if (!Array.isArray(questionsToSave) || !questionsToSave.length) {
+    return { ok: false, version: CONNECTOR_VERSION, error: 'No questions to save.' };
+  }
+  var cleaned = questionsToSave.map(normalizeQuestion).filter(function(question) {
+    return question.id && question.product && question.question;
+  });
+  if (!cleaned.length) return { ok: false, version: CONNECTOR_VERSION, error: 'No valid questions to save.' };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    writeLargeProperty(QUESTIONS_KEY_PREFIX, JSON.stringify(cleaned));
+    return { ok: true, version: CONNECTOR_VERSION, questions: cleaned, count: cleaned.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function connectorPage(result) {
   var ok = Boolean(result && result.ok);
   var title = ok
@@ -183,6 +219,18 @@ function normalizeSubmission(submission) {
   clean.name = clean.name || profile.name || nameFromEmail(clean.email);
   clean.position = clean.position || profile.position || '';
   return clean;
+}
+
+function normalizeQuestion(question) {
+  var clean = Object.assign({}, question || {});
+  return {
+    id: String(clean.id || '').trim(),
+    product: choiceOrDefault(clean.product, PRODUCT_ORDER),
+    number: Number(clean.number || 0) || '',
+    question: String(clean.question || '').trim(),
+    answer: String(clean.answer || '').trim(),
+    points: Number(clean.points || 10) || 10,
+  };
 }
 
 function remoteSubmissionKey(submission) {
@@ -221,9 +269,9 @@ function writeLargeProperty(prefix, value) {
   var props = PropertiesService.getScriptProperties();
   var previousCount = Number(props.getProperty(prefix + '-chunks') || 0);
   var text = String(value || '');
-  var nextCount = Math.max(1, Math.ceil(text.length / SUBMISSIONS_CHUNK_SIZE));
+  var nextCount = Math.max(1, Math.ceil(text.length / STORE_CHUNK_SIZE));
   for (var index = 0; index < nextCount; index += 1) {
-    props.setProperty(prefix + '-' + index, text.slice(index * SUBMISSIONS_CHUNK_SIZE, (index + 1) * SUBMISSIONS_CHUNK_SIZE));
+    props.setProperty(prefix + '-' + index, text.slice(index * STORE_CHUNK_SIZE, (index + 1) * STORE_CHUNK_SIZE));
   }
   for (var cleanup = nextCount; cleanup < previousCount; cleanup += 1) {
     props.deleteProperty(prefix + '-' + cleanup);

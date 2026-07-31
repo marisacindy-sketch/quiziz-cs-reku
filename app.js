@@ -222,6 +222,19 @@ function saveQuestions() {
   localStorage.setItem("quiziz-owner-questions", JSON.stringify(state.questions));
 }
 
+function normalizeQuestionBank(questions = []) {
+  return questions
+    .map((question) => ({
+      id: String(question.id || "").trim(),
+      product: PRODUCT_ORDER.includes(question.product) ? question.product : PRODUCT_ORDER[0],
+      number: Number(question.number || 0) || "",
+      question: String(question.question || "").trim(),
+      answer: String(question.answer || "").trim(),
+      points: Number(question.points || 10) || 10,
+    }))
+    .filter((question) => question.id && question.product && question.question);
+}
+
 function getSubmissions() {
   return JSON.parse(localStorage.getItem("quiziz-submissions") || "[]");
 }
@@ -342,7 +355,7 @@ function callSettingsConnector(url, action, settings = null) {
     const timeout = window.setTimeout(() => {
       cleanup();
       resolve(false);
-    }, 2500);
+    }, 8000);
 
     window[callbackName] = (payload) => {
       window.clearTimeout(timeout);
@@ -383,6 +396,35 @@ function publishRemoteSettings() {
     expectedEmails: state.settings.expectedEmails,
   };
   return callSettingsConnector(url, "save_settings", settings);
+}
+
+async function loadRemoteQuestions() {
+  const payload = await callSettingsConnector(activeConnectorUrl(), "get_questions");
+  if (!payload?.ok || !Array.isArray(payload.questions) || !payload.questions.length) return false;
+  const questions = normalizeQuestionBank(payload.questions);
+  if (!questions.length) return false;
+  state.questions = questions;
+  saveQuestions();
+  return true;
+}
+
+function publishRemoteQuestions() {
+  const url = activeConnectorUrl();
+  if (!isValidConnectorUrl(url) || !state.questions.length) return Promise.resolve(false);
+  const payload = {
+    action: "save_questions",
+    questions: normalizeQuestionBank(state.questions),
+  };
+  postConnectorPayload(url, payload);
+  return fetch(url, {
+    method: "POST",
+    mode: "no-cors",
+    credentials: "include",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  })
+    .then(() => true)
+    .catch(() => false);
 }
 
 function mergeSubmissions(incoming = []) {
@@ -2238,7 +2280,7 @@ function renderAfterSettingsChange() {
   updateTimer();
 }
 
-function saveQuestionEdit() {
+async function saveQuestionEdit() {
   if (!isOwner() || !state.activeId) return;
   const index = state.questions.findIndex((item) => item.id === state.activeId);
   if (index < 0) return;
@@ -2250,7 +2292,11 @@ function saveQuestionEdit() {
   renderStats();
   renderFilters();
   setActiveQuestion(state.activeId);
-  els.saveQuestionEdit.textContent = "Saved";
+  els.saveQuestionEdit.disabled = true;
+  els.saveQuestionEdit.textContent = "Syncing...";
+  const synced = await publishRemoteQuestions();
+  els.saveQuestionEdit.disabled = false;
+  els.saveQuestionEdit.textContent = synced ? "Saved + synced" : "Saved locally";
   window.setTimeout(() => {
     els.saveQuestionEdit.textContent = "Save this question";
   }, 1200);
@@ -2322,11 +2368,17 @@ function initEvents() {
     saveSettings();
     els.settingsSavedText.textContent = "Saving rules...";
     const synced = await publishRemoteSettings();
+    const questionsSynced = await publishRemoteQuestions();
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
     const allowedCount = expectedEmailList().length;
-    const syncCopy = synced ? "Synced for trainees." : "Saved here. Redeploy the connector so trainees get this globally.";
+    const syncCopy =
+      synced && questionsSynced
+        ? "Synced rules and questions for trainees."
+        : synced
+          ? "Rules synced. Questions stayed local because connector question sync did not confirm."
+          : "Saved here. Redeploy the connector so trainees get this globally.";
     els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
       state.settings.closeDay,
     )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
@@ -2469,9 +2521,10 @@ async function boot() {
   }
   const ownerQuestions = JSON.parse(localStorage.getItem("quiziz-owner-questions") || "null");
   if (Array.isArray(ownerQuestions) && ownerQuestions.length) {
-    state.questions = ownerQuestions;
+    state.questions = normalizeQuestionBank(ownerQuestions);
   }
   await loadRemoteSettings();
+  await loadRemoteQuestions();
   initEvents();
   if (state.currentUser) showApp();
 }
