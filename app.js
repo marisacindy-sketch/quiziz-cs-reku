@@ -222,6 +222,11 @@ function saveQuestions() {
   localStorage.setItem("quiziz-owner-questions", JSON.stringify(state.questions));
 }
 
+function ownerQuestionOverrides() {
+  const questions = JSON.parse(localStorage.getItem("quiziz-owner-questions") || "null");
+  return Array.isArray(questions) ? normalizeQuestionBank(questions) : [];
+}
+
 function normalizeQuestionBank(questions = []) {
   return questions
     .map((question) => ({
@@ -425,6 +430,14 @@ function publishRemoteQuestions() {
   })
     .then(() => true)
     .catch(() => false);
+}
+
+function publishOwnerQuestionOverrides() {
+  if (!isOwner()) return;
+  const questions = ownerQuestionOverrides();
+  if (!questions.length) return;
+  state.questions = questions;
+  publishRemoteQuestions();
 }
 
 function mergeSubmissions(incoming = []) {
@@ -1829,6 +1842,7 @@ function showApp() {
   els.userEmail.textContent = state.currentUser.email;
   els.userRole.textContent = isOwner() ? "owner" : "trainee";
   loadUserState();
+  publishOwnerQuestionOverrides();
   renderStats();
   renderFilters();
   setActiveQuestion(availableQuestions()[0]?.id || state.questions[0]?.id);
@@ -2519,12 +2533,12 @@ async function boot() {
   } catch {
     state.questions = window.QUIZ_DATA || [];
   }
-  const ownerQuestions = JSON.parse(localStorage.getItem("quiziz-owner-questions") || "null");
-  if (Array.isArray(ownerQuestions) && ownerQuestions.length) {
-    state.questions = normalizeQuestionBank(ownerQuestions);
+  const ownerQuestions = ownerQuestionOverrides();
+  if (ownerQuestions.length) {
+    state.questions = ownerQuestions;
   }
   await loadRemoteSettings();
-  await loadRemoteQuestions();
+  if (!ownerQuestions.length) await loadRemoteQuestions();
   initEvents();
   if (state.currentUser) showApp();
 }
