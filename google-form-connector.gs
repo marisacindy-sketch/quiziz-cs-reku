@@ -1,4 +1,4 @@
-var CONNECTOR_VERSION = '2026-07-31-v7';
+var CONNECTOR_VERSION = '2026-08-13-v8';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var QUESTIONS_KEY_PREFIX = 'quiziz-cs-reku-questions';
@@ -212,6 +212,7 @@ function normalizeSubmission(submission) {
   clean.email = String(clean.email || '').trim().toLowerCase();
   clean.activeProduct = clean.activeProduct || getWeeklySettings().activeProduct || 'General';
   clean.submittedAt = clean.submittedAt || new Date().toISOString();
+  clean.quizPeriod = clean.quizPeriod || String(clean.submittedAt).slice(0, 7);
   clean.answers = clean.answers || {};
   clean.syncedAt = new Date().toISOString();
 
@@ -236,8 +237,8 @@ function normalizeQuestion(question) {
 function remoteSubmissionKey(submission) {
   var email = String(submission.email || '').toLowerCase();
   var product = String(submission.activeProduct || '');
-  var month = String(submission.submittedAt || '').slice(0, 7);
-  return [email, product, month].join('__');
+  var period = String(submission.quizPeriod || submission.submittedAt || '').slice(0, 10);
+  return [email, product, period].join('__');
 }
 
 function readRemoteSubmissions() {

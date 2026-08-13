@@ -445,11 +445,11 @@ function mergeSubmissions(incoming = []) {
   [...getSubmissions(), ...incoming].forEach((submission) => {
     if (!submission?.email) return;
     const product = submission.activeProduct || state.settings.activeProduct;
-    const month = String(submission.submittedAt || "").slice(0, 7);
-    const key = `${submission.email.toLowerCase()}__${product}__${month}`;
+    const period = submissionPeriodKey(submission);
+    const key = `${submission.email.toLowerCase()}__${product}__${period}`;
     const existing = byKey.get(key);
     if (!existing || new Date(submission.submittedAt || 0) >= new Date(existing.submittedAt || 0)) {
-      byKey.set(key, { ...submission, email: submission.email.toLowerCase(), activeProduct: product });
+      byKey.set(key, { ...submission, email: submission.email.toLowerCase(), activeProduct: product, quizPeriod: period });
     }
   });
   const merged = [...byKey.values()].sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
@@ -528,15 +528,15 @@ async function remoteHasSubmissions(submissions) {
     payload.submissions.map((submission) => {
       const email = String(submission.email || "").toLowerCase();
       const product = submission.activeProduct || "";
-      const month = String(submission.submittedAt || "").slice(0, 7);
-      return `${email}__${product}__${month}`;
+      const period = submissionPeriodKey(submission);
+      return `${email}__${product}__${period}`;
     }),
   );
   return submissions.every((submission) => {
     const email = String(submission.email || "").toLowerCase();
     const product = submission.activeProduct || "";
-    const month = String(submission.submittedAt || "").slice(0, 7);
-    return remoteKeys.has(`${email}__${product}__${month}`);
+    const period = submissionPeriodKey(submission);
+    return remoteKeys.has(`${email}__${product}__${period}`);
   });
 }
 
@@ -552,7 +552,7 @@ async function syncSubmittedAttemptsToRemote(showStatus = false) {
   const submissions = PRODUCT_ORDER.map((product) => {
     const attempt = getAttempt(product);
     if (!attempt?.submittedAt) return null;
-    const submission = getSubmission(state.currentUser.email, product) || buildSubmission(attempt, product);
+    const submission = getSubmission(state.currentUser.email, product, attempt.quizPeriod) || buildSubmission(attempt, product);
     return { ...submission, activeProduct: product };
   }).filter(Boolean);
 
@@ -587,7 +587,7 @@ function recoverSubmittedAttempts() {
   const recovered = PRODUCT_ORDER.map((product) => {
     const attempt = getAttempt(product);
     if (!attempt?.submittedAt) return null;
-    return getSubmission(state.currentUser.email, product) || buildSubmission(attempt, product);
+    return getSubmission(state.currentUser.email, product, attempt.quizPeriod) || buildSubmission(attempt, product);
   }).filter(Boolean);
   if (recovered.length) mergeSubmissions(recovered);
 }
@@ -661,17 +661,27 @@ function showAppView(view = "quiz") {
   }
 }
 
-function attemptStorageKey(product = state.settings.activeProduct) {
-  return storageKey(`attempt-${slugify(product)}`);
+function currentQuizPeriod(now = new Date()) {
+  const { openAt } = getWindow(now);
+  return openAt.toISOString().slice(0, 10);
 }
 
-function getAttempt(product = state.settings.activeProduct) {
+function submissionPeriodKey(submission, fallbackDate = new Date()) {
+  if (submission?.quizPeriod) return String(submission.quizPeriod);
+  return String(submission?.submittedAt || fallbackDate.toISOString()).slice(0, 7);
+}
+
+function attemptStorageKey(product = state.settings.activeProduct, period = currentQuizPeriod()) {
+  return storageKey(`attempt-${slugify(product)}-${period}`);
+}
+
+function getAttempt(product = state.settings.activeProduct, period = currentQuizPeriod()) {
   if (!state.currentUser) return null;
-  return JSON.parse(localStorage.getItem(attemptStorageKey(product)) || "null");
+  return JSON.parse(localStorage.getItem(attemptStorageKey(product, period)) || "null");
 }
 
-function saveAttempt(attempt, product = state.settings.activeProduct) {
-  localStorage.setItem(attemptStorageKey(product), JSON.stringify({ ...attempt, product }));
+function saveAttempt(attempt, product = state.settings.activeProduct, period = currentQuizPeriod()) {
+  localStorage.setItem(attemptStorageKey(product, period), JSON.stringify({ ...attempt, product, quizPeriod: period }));
 }
 
 function elapsedSeconds(startedAt, submittedAt = new Date().toISOString()) {
@@ -1394,9 +1404,12 @@ function questionsForProduct(product) {
   return state.questions.filter((question) => question.product === product);
 }
 
-function getSubmission(email, product = state.settings.activeProduct) {
+function getSubmission(email, product = state.settings.activeProduct, period = currentQuizPeriod()) {
   return getSubmissions().find(
-    (submission) => submission.email === email && (submission.activeProduct || product) === product,
+    (submission) =>
+      submission.email === email &&
+      (submission.activeProduct || product) === product &&
+      submissionPeriodKey(submission) === period,
   );
 }
 
@@ -1514,20 +1527,20 @@ function renderExportHistory() {
     .join("");
 }
 
-function responseKey(email, product) {
-  return `${email}__${slugify(product)}`;
+function responseKey(email, product, period = currentQuizPeriod()) {
+  return `${email}__${slugify(product)}__${period}`;
 }
 
 function parseResponseKey(key) {
-  const [email, productSlug] = String(key || "").split("__");
+  const [email, productSlug, period] = String(key || "").split("__");
   const product = PRODUCT_ORDER.find((item) => slugify(item) === productSlug) || state.settings.activeProduct;
-  return { email, product };
+  return { email, product, period };
 }
 
 function renderResponseViewer(key) {
   if (!isOwner()) return;
-  const { email, product: requestedProduct } = parseResponseKey(key);
-  const submission = getSubmission(email, requestedProduct);
+  const { email, product: requestedProduct, period } = parseResponseKey(key);
+  const submission = getSubmission(email, requestedProduct, period);
   if (!submission) {
     state.openResponseEmail = "";
     els.responseViewer.hidden = true;
@@ -1735,7 +1748,7 @@ function renderOwnerDashboard() {
 
   const submittedRows = submissions.map((submission) => {
     const rowProduct = submission.activeProduct || selectedProduct;
-    const rowKey = responseKey(submission.email, rowProduct);
+    const rowKey = responseKey(submission.email, rowProduct, submissionPeriodKey(submission));
     return `
       <tr>
         <td>${escapeHtml(submission.email)}</td>
@@ -1926,6 +1939,7 @@ function buildSubmission(attempt, product = state.settings.activeProduct) {
     position: profile.position,
     role: state.currentUser.role,
     activeProduct: product,
+    quizPeriod: attempt.quizPeriod || currentQuizPeriod(),
     startedAt: attempt.startedAt || "",
     submittedAt: attempt.submittedAt,
     submitReason: attempt.submitReason || "manual",
@@ -1942,7 +1956,10 @@ function buildSubmission(attempt, product = state.settings.activeProduct) {
 function saveSubmission(attempt) {
   const submission = buildSubmission(attempt, state.settings.activeProduct);
   const submissions = getSubmissions().filter(
-    (item) => item.email !== state.currentUser.email || item.activeProduct !== state.settings.activeProduct,
+    (item) =>
+      item.email !== state.currentUser.email ||
+      item.activeProduct !== state.settings.activeProduct ||
+      submissionPeriodKey(item) !== submission.quizPeriod,
   );
   submissions.push(submission);
   saveSubmissions(submissions);
