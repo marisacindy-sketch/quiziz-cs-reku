@@ -1,8 +1,9 @@
-var CONNECTOR_VERSION = '2026-08-13-v8';
+var CONNECTOR_VERSION = '2026-08-14-v9';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var QUESTIONS_KEY_PREFIX = 'quiziz-cs-reku-questions';
 var SUBMISSIONS_KEY_PREFIX = 'quiziz-cs-reku-submissions';
+var PASSWORD_RESETS_KEY = 'quiziz-password-resets';
 var STORE_CHUNK_SIZE = 7000;
 var PRODUCT_ORDER = ['General', 'Kripto Spot', 'US Stock', 'Perpetuals'];
 var DEFAULT_TRAINEE_ROSTER = [
@@ -26,6 +27,8 @@ function doGet(e) {
     var action = (e.parameter && e.parameter.action) || '';
     if (action === 'get_settings') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, settings: getWeeklySettings() });
     if (action === 'save_settings') return jsonpOrJson(e, saveWeeklySettings(parseJson(e.parameter.settings, {})));
+    if (action === 'get_password_resets') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, resets: readPasswordResets() });
+    if (action === 'save_password_reset') return jsonpOrJson(e, savePasswordReset(e.parameter.email));
     if (action === 'get_questions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, questions: readRemoteQuestions() });
     if (action === 'get_submissions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
     if (action === 'save_submission') {
@@ -50,6 +53,7 @@ function doPost(e) {
     if (action === 'save_submission') result = saveRemoteSubmission(payload.submission || {});
     else if (action === 'save_submissions') result = saveRemoteSubmissions(payload.submissions || []);
     else if (action === 'save_settings') result = saveWeeklySettings(payload.settings || {});
+    else if (action === 'save_password_reset') result = savePasswordReset(payload.email);
     else if (action === 'save_questions') result = saveRemoteQuestions(payload.questions || []);
     else if (action === 'create_or_update_monthly_form') result = createOrUpdateMonthlyForm(payload);
     else result = { ok: false, version: CONNECTOR_VERSION, error: 'Unsupported action: ' + action };
@@ -107,6 +111,21 @@ function saveWeeklySettings(settings) {
   next.updatedAt = new Date().toISOString();
   PropertiesService.getScriptProperties().setProperty(SETTINGS_KEY, JSON.stringify(next));
   return { ok: true, version: CONNECTOR_VERSION, settings: next };
+}
+
+function readPasswordResets() {
+  return parseJson(PropertiesService.getScriptProperties().getProperty(PASSWORD_RESETS_KEY), {});
+}
+
+function savePasswordReset(email) {
+  var cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail || cleanEmail.indexOf('@') === -1) {
+    return { ok: false, version: CONNECTOR_VERSION, error: 'Missing trainee email.' };
+  }
+  var resets = readPasswordResets();
+  resets[cleanEmail] = new Date().toISOString();
+  PropertiesService.getScriptProperties().setProperty(PASSWORD_RESETS_KEY, JSON.stringify(resets));
+  return { ok: true, version: CONNECTOR_VERSION, email: cleanEmail, resetAt: resets[cleanEmail], resets: resets };
 }
 
 function saveRemoteSubmission(submission) {

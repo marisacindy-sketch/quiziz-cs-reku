@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=67" />
+    <link rel="stylesheet" href="styles.css?v=68" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -536,6 +536,23 @@
                 placeholder="Frans William Tobing | frans.william@reku.id | Customer Success Associate&#10;Squad Lead Name | lead@reku.id | Customer Success Squad Lead / QC"
               ></textarea>
             </label>
+            <div class="form-wide access-list-card password-reset-card">
+              <span>Password reset</span>
+              <strong>Reset trainee password</strong>
+              <small>
+                Only the selected trainee can set a new quiz password on next login. Answers,
+                history, questions, and settings stay untouched.
+              </small>
+              <div class="inline-controls">
+                <select id="resetPasswordEmail" aria-label="Trainee email"></select>
+                <button id="resetTraineePassword" class="secondary" type="button">
+                  Reset password
+                </button>
+              </div>
+              <p class="helper-text" id="resetPasswordStatus">
+                Pick a trainee if they forgot their local quiz password.
+              </p>
+            </div>
           </div>
           <button type="submit">Save the rules</button>
           <p class="helper-text" id="settingsSavedText">
@@ -703,7 +720,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=67"></script>
-    <script src="app.js?v=67"></script>
+    <script src="quiz-data.js?v=68"></script>
+    <script src="app.js?v=68"></script>
   </body>
 </html>

@@ -107,6 +107,9 @@ const els = {
   durationMinutes: document.querySelector("#durationMinutes"),
   activeProductSetting: document.querySelector("#activeProductSetting"),
   expectedEmails: document.querySelector("#expectedEmails"),
+  resetPasswordEmail: document.querySelector("#resetPasswordEmail"),
+  resetTraineePassword: document.querySelector("#resetTraineePassword"),
+  resetPasswordStatus: document.querySelector("#resetPasswordStatus"),
   timerChip: document.querySelector("#timerChip"),
   timerText: document.querySelector("#timerText"),
   timerLabel: document.querySelector("#timerLabel"),
@@ -348,7 +351,7 @@ function loadRemoteSettings() {
   return callSettingsConnector(url, "get_settings");
 }
 
-function callSettingsConnector(url, action, settings = null) {
+function callSettingsConnector(url, action, settings = null, extraParams = {}) {
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
   return new Promise((resolve) => {
     const callbackName = `quizizSettings_${Date.now()}_${Math.round(Math.random() * 10000)}`;
@@ -382,6 +385,9 @@ function callSettingsConnector(url, action, settings = null) {
     const params = new URLSearchParams({
       action,
       callback: callbackName,
+    });
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) params.set(key, String(value));
     });
     if (settings) params.set("settings", JSON.stringify(settings));
     script.src = `${url}?${params.toString()}`;
@@ -598,6 +604,51 @@ function getTraineePasswordStore() {
 
 function saveTraineePasswordStore(store) {
   localStorage.setItem("quiziz-trainee-passwords", JSON.stringify(store));
+}
+
+function getPasswordResetMarkers() {
+  return JSON.parse(localStorage.getItem("quiziz-password-reset-markers") || "{}");
+}
+
+function savePasswordResetMarkers(markers) {
+  localStorage.setItem("quiziz-password-reset-markers", JSON.stringify(markers));
+}
+
+async function applyRemotePasswordReset(email) {
+  const payload = await callSettingsConnector(activeConnectorUrl(), "get_password_resets");
+  const resetAt = payload?.resets?.[email];
+  if (!resetAt) return false;
+
+  const markers = getPasswordResetMarkers();
+  if (markers[email] === resetAt) return false;
+
+  const passwordStore = getTraineePasswordStore();
+  delete passwordStore[email];
+  saveTraineePasswordStore(passwordStore);
+  markers[email] = resetAt;
+  savePasswordResetMarkers(markers);
+  return true;
+}
+
+async function resetTraineePasswordFromOwner() {
+  if (!isOwner()) return;
+  const email = els.resetPasswordEmail?.value.trim().toLowerCase();
+  if (!email) {
+    els.resetPasswordStatus.textContent = "Pick a trainee email first.";
+    return;
+  }
+
+  els.resetTraineePassword.disabled = true;
+  els.resetPasswordStatus.textContent = "Resetting password...";
+  const payload = await callSettingsConnector(activeConnectorUrl(), "save_password_reset", null, { email });
+  els.resetTraineePassword.disabled = false;
+
+  if (payload?.ok) {
+    els.resetPasswordStatus.textContent = `Password reset queued for ${email}. They can set a new password on next login.`;
+    return;
+  }
+
+  els.resetPasswordStatus.textContent = "Reset failed. Check connector deployment, then try again.";
 }
 
 async function hashPassword(email, password) {
@@ -1372,6 +1423,19 @@ function fillSettingsForm() {
   els.durationMinutes.value = state.settings.durationMinutes;
   els.activeProductSetting.value = state.settings.activeProduct;
   els.expectedEmails.value = state.settings.expectedEmails || "";
+  if (els.resetPasswordEmail) {
+    const selectedEmail = els.resetPasswordEmail.value;
+    const roster = traineeRoster();
+    els.resetPasswordEmail.innerHTML = roster
+      .map((profile) => {
+        const label = profile.name ? `${profile.name} - ${profile.email}` : profile.email;
+        return `<option value="${escapeHtml(profile.email)}">${escapeHtml(label)}</option>`;
+      })
+      .join("");
+    if (roster.some((profile) => profile.email === selectedEmail)) {
+      els.resetPasswordEmail.value = selectedEmail;
+    }
+  }
   fillGoogleFormConfig();
   renderOwnerDashboard();
   renderAnswerHistory();
@@ -1833,6 +1897,8 @@ async function login(email, password) {
   if (!invitedEmails.includes(normalizedEmail)) {
     throw new Error("This email is not on the quiz access list. Ask the owner to add it first.");
   }
+
+  await applyRemotePasswordReset(normalizedEmail);
 
   const passwordStore = getTraineePasswordStore();
   const passwordHash = await hashPassword(normalizedEmail, password);
@@ -2360,6 +2426,10 @@ function initEvents() {
     showAppView("settings");
     showSettingsPanel("quizControlsPanel");
   });
+
+  if (els.resetTraineePassword) {
+    els.resetTraineePassword.addEventListener("click", resetTraineePasswordFromOwner);
+  }
 
   els.closeSettings.addEventListener("click", () => {
     showAppView("quiz");
