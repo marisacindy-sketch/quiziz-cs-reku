@@ -22,16 +22,26 @@ const DEFAULT_TRAINEE_ROSTER = [
   "Rizky Afrianzie | rizky.afrianzie@reku.id | Customer Success Associate",
   "Tasya Salma Ramdini Putri | tasya.salma@reku.id | Customer Success Associate",
   "Willyansya Heka | willyansyaheka@reku.id | Customer Success Associate",
+  "Test 1 | test1@reku.id | Customer Success Associate",
 ].join("\n");
 
-const defaultSettings = {
+const PUBLIC_FALLBACK_SETTINGS = {
   openDay: 5,
   openTime: "13:00",
   closeDay: 0,
   closeTime: "23:59",
-  durationMinutes: 90,
+  durationMinutes: 35,
+  activeProduct: "Perpetuals",
+};
+
+const defaultSettings = {
+  openDay: PUBLIC_FALLBACK_SETTINGS.openDay,
+  openTime: PUBLIC_FALLBACK_SETTINGS.openTime,
+  closeDay: PUBLIC_FALLBACK_SETTINGS.closeDay,
+  closeTime: PUBLIC_FALLBACK_SETTINGS.closeTime,
+  durationMinutes: PUBLIC_FALLBACK_SETTINGS.durationMinutes,
   answerKeyMode: "owner",
-  activeProduct: "General",
+  activeProduct: PUBLIC_FALLBACK_SETTINGS.activeProduct,
   expectedEmails: DEFAULT_TRAINEE_ROSTER,
 };
 
@@ -350,6 +360,14 @@ function loadRemoteSettings() {
 async function refreshSharedConfig() {
   const settingsLoaded = await loadRemoteSettings();
   const questionsLoaded = await loadRemoteQuestions();
+  if (!settingsLoaded && !isOwner()) {
+    state.settings = normalizeSettings({
+      ...state.settings,
+      ...PUBLIC_FALLBACK_SETTINGS,
+      expectedEmails: state.settings.expectedEmails || DEFAULT_TRAINEE_ROSTER,
+    });
+    saveSettings();
+  }
   return { settingsLoaded: Boolean(settingsLoaded), questionsLoaded: Boolean(questionsLoaded) };
 }
 
@@ -1920,7 +1938,7 @@ async function login(email, password) {
   const invitedEmails = expectedEmailList();
   if (!invitedEmails.includes(normalizedEmail)) {
     if (!remote.settingsLoaded) {
-      throw new Error("Quiz settings have not synced yet. Refresh once, then try again.");
+      throw new Error("Quiz settings have not synced yet. This email is not in the published fallback roster.");
     }
     throw new Error("This email is not on the quiz access list. Ask the owner to add it first.");
   }

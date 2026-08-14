@@ -163,80 +163,240 @@ window.QUIZ_DATA = [
     "id": "US Stock-1",
     "product": "US Stock",
     "number": 1,
-    "question": "Jelaskan secara lengkap apa itu produk US Stock di Reku (PALN), termasuk mekanisme kontrak, pihak ketiga yang terlibat, dan apa perbedaan fundamental produk ini dibandingkan dengan membeli saham AS langsung di broker internasional.",
-    "answer": "US Stock di Reku (nama produk: PALN – Perdagangan Aset Luar Negeri) adalah produk investasi yang memungkinkan pengguna Indonesia berinvestasi di saham-saham AS dengan modal minimal dan tanpa perlu membuka akun broker di luar negeri.\n\nMekanisme Kontrak:\n- Kontrak berbanding lurus: pergerakan nilai investasi pengguna proporsional 1:1 dengan pergerakan harga saham asli di AS.\n- Bukan kepemilikan saham langsung, melainkan kontrak derivatif yang nilai dan pergerakannya mengikuti harga saham underlying.\n\nPihak Ketiga:\n- Broker AS: Alpaca Securities (atau ekuivalen yang ditunjuk)\n- Market Infrastructure: BlueOcean Technologies untuk sesi Extended Hours\n- Kustodian dan kliring sesuai regulasi AS (FINRA)\n\nPerbedaan dengan broker internasional langsung:\n- Tidak perlu akun USD atau transfer valas\n- Denominasi IDR (dapat beli mulai $1 setara IDR)\n- Regulasi OJK Indonesia (bukan SEC/FINRA langsung)\n- Fraksional shares tersedia (tidak perlu beli 1 lot penuh)\n- Fee dalam IDR: 0,278% per transaksi",
+    "question": "Jelaskan cara kerja produk Saham AS di Reku, termasuk hubungan pergerakan nilainya dengan saham asli di Amerika Serikat dan alasan pengguna dapat mulai dari nominal kecil.",
+    "answer": "Produk Saham AS Reku menggunakan kontrak berbanding lurus. Saat pengguna bertransaksi, aset dasar di Amerika Serikat diperdagangkan atas nama pengguna sehingga nilai investasinya mengikuti pergerakan saham acuan secara searah. Saham dapat dibeli dalam pecahan, jadi pengguna tidak harus membeli satu lembar penuh dan dapat mulai dari sekitar $1.",
     "points": 10
   },
   {
     "id": "US Stock-2",
     "product": "US Stock",
     "number": 2,
-    "question": "Jelaskan sistem 24-Hour Trading (Extended Hours) untuk US Stock di Reku, sebutkan semua sesi trading yang ada, waktu operasionalnya (WIB), dan batasan atau risiko yang perlu diketahui pengguna.",
-    "answer": "Sistem 24-Hour Trading di Reku memungkinkan pengguna bertransaksi saham AS hampir sepanjang waktu melalui 4 sesi:\n\n1. Overnight Session (Sesi Malam – BlueOcean):\n- Waktu AS: 20.00 – 04.00 ET\n- Waktu WIB: 07.00 – 15.00 WIB (hari kerja)\n\n2. Pre-Market Session:\n- Waktu AS: 04.00 – 09.30 ET\n- Waktu WIB: 15.00 – 21.30 WIB\n\n3. Regular Market Session:\n- Waktu AS: 09.30 – 16.00 ET\n- Waktu WIB: 21.30 – 04.00 WIB (dini hari)\n\n4. After-Hours Session:\n- Waktu AS: 16.00 – 20.00 ET\n- Waktu WIB: 04.00 – 08.00 WIB\n\nRisiko dan batasan Extended Hours:\n- Likuiditas lebih rendah → spread lebih lebar\n- Volatilitas lebih tinggi dibanding Regular Session\n- Tidak semua saham tersedia di Extended Hours\n- Harga dapat bergerak signifikan sebelum Regular Market buka",
+    "question": "Jabarkan status kepemilikan Saham AS yang dibeli melalui Reku, pihak yang membantu menyediakan aksesnya, tempat pencatatan transaksinya, dan satu hak pemegang saham yang tidak diperoleh pengguna.",
+    "answer": "Reku bekerja sama dengan PT Pasar Forex dan Komoditi Berjangka, pialang berjangka yang memiliki izin PALN dari Bappebti. Aset dasar diperdagangkan atas nama pengguna. Transaksi dicatat di Jakarta Futures Exchange (JFX) dan Kliring Berjangka Indonesia (KBI). Pengguna memperoleh manfaat ekonomi dari saham, tetapi tidak memiliki hak suara dalam rapat pemegang saham.",
     "points": 10
   },
   {
     "id": "US Stock-3",
     "product": "US Stock",
     "number": 3,
-    "question": "Studi Kasus Transaksi US Stock: Rini membeli 5 lembar saham AAPL saat harga $190 per lembar menggunakan kurs Rp 15.800/USD. Kemudian menjual saat harga AAPL $200. Hitunglah: (a) Modal beli dalam IDR; (b) Biaya transaksi beli; (c) Pendapatan jual dalam IDR; (d) Biaya transaksi jual; (e) Profit bersih.",
-    "answer": "Kurs tetap Rp 15.800/USD (asumsi kurs sama)\n\n(a) Modal Beli:\n5 lembar × $190 = $950\n$950 × Rp 15.800 = Rp 15.010.000\n\n(b) Biaya Transaksi Beli:\n0,278% × Rp 15.010.000 = Rp 41.728\n\n(c) Pendapatan Jual:\n5 lembar × $200 = $1.000\n$1.000 × Rp 15.800 = Rp 15.800.000\n\n(d) Biaya Transaksi Jual:\n0,278% × Rp 15.800.000 = Rp 43.924\n\n(e) Profit Bersih:\nProfit kotor = Rp 15.800.000 – Rp 15.010.000 = Rp 790.000\nTotal biaya = Rp 41.728 + Rp 43.924 = Rp 85.652\nProfit bersih = Rp 790.000 – Rp 85.652 = Rp 704.348",
+    "question": "Jelaskan perbedaan membeli saham satu perusahaan dengan membeli ETF, lalu sebutkan keadaan ketika ETF lebih masuk akal bagi pengguna.",
+    "answer": "Saham satu perusahaan membuat hasil investasi sangat bergantung pada kinerja perusahaan tersebut. ETF berisi sekumpulan aset dan diperdagangkan seperti saham, sehingga satu pembelian dapat memberi penyebaran investasi yang lebih luas. ETF lebih masuk akal bagi pengguna yang ingin menyebar risiko, belum yakin memilih perusahaan satu per satu, atau ingin mengikuti indeks maupun tema tertentu. ETF tetap dapat turun dan tidak menghilangkan risiko pasar.",
     "points": 10
   },
   {
     "id": "US Stock-4",
     "product": "US Stock",
     "number": 4,
-    "question": "Jelaskan apa itu fitur 'Fraksional Shares' pada produk US Stock Reku, berikan contoh penggunaannya, dan jelaskan bagaimana proses jual beli fraksional bekerja.",
-    "answer": "Fraksional Shares adalah fitur yang memungkinkan pengguna membeli sebagian (fraksi) dari satu lembar saham, bukan harus 1 lembar penuh.\n\nMinimum investasi: setara $1 USD (dalam IDR)\n\nContoh:\n- Harga 1 lembar saham GOOGL = $180\n- Pengguna hanya punya $10 → bisa beli 10/180 = 0,0556 lembar GOOGL\n- Nilai investasi mengikuti proporsi tersebut\n\nCara kerja:\n- Reku (melalui broker AS) mengkonsolidasikan order-order fraksional dari banyak pengguna\n- Pengguna memiliki 'beneficial interest' atas fraksi saham tersebut\n- Nilai portofolio bergerak proporsional dengan harga saham asli\n- Dividen (jika ada) dibayarkan proporsional sesuai fraksi kepemilikan\n\nManfaat bagi pengguna Indonesia:\n- Bisa berinvestasi di saham mahal (AMZN, TSLA, dll) dengan modal terjangkau\n- Diversifikasi portofolio lebih mudah\n- Tidak perlu menunggu tabungan cukup untuk beli 1 lot penuh",
+    "question": "Jelaskan manfaat dan keterbatasan saham pecahan bagi pengguna yang memiliki modal terbatas.",
+    "answer": "Saham pecahan memungkinkan pengguna membeli sebagian kecil saham mahal, mulai sekitar $1, sehingga modal dapat dibagi ke beberapa aset dan tidak perlu menunggu mampu membeli satu lembar penuh. Keterbatasannya: nilai keuntungan dan dividen mengikuti porsi yang dimiliki, beberapa jenis atau sesi order dapat memiliki ketentuan khusus, dan modal kecil tetap dapat berkurang jika harga turun.",
     "points": 10
   },
   {
     "id": "US Stock-5",
     "product": "US Stock",
     "number": 5,
-    "question": "Jelaskan semua jenis Advanced Order yang tersedia untuk US Stock di Reku (Limit Order, Stop Order, Stop-Limit Order), bagaimana cara kerjanya, dan berikan contoh kapan masing-masing tipe order sebaiknya digunakan.",
-    "answer": "1. Limit Order:\n- Order beli/jual pada harga tertentu atau lebih baik\n- Beli Limit: tereksekusi hanya jika harga pasar ≤ harga limit yang ditentukan\n- Jual Limit: tereksekusi hanya jika harga pasar ≥ harga limit yang ditentukan\n- Contoh penggunaan: Ingin beli AAPL maksimum di $190, set limit order $190\n\n2. Stop Order (Stop Market Order):\n- Menjadi market order saat harga menyentuh 'stop price'\n- Stop Loss: Jual otomatis jika harga turun ke level tertentu untuk batasi kerugian\n- Stop Buy: Beli otomatis jika harga naik melampaui level tertentu (untuk breakout)\n- Contoh: Punya AAPL di $200, set stop sell di $185 untuk proteksi\n\n3. Stop-Limit Order:\n- Kombinasi Stop + Limit: ketika harga menyentuh stop price, menjadi limit order\n- Lebih presisi tapi risiko order tidak terisi jika harga bergerak terlalu cepat\n- Contoh: Stop price $185, limit price $183 → order jual antara $185-$183\n\nCatatan: Semua Advanced Order di Reku berlaku untuk sesi Regular dan Extended Hours, dengan minimum/maksimum order sesuai ketentuan yang berlaku.",
+    "question": "Sebelum memberikan panduan transaksi Saham AS, sebutkan dua kesiapan akun yang perlu dipastikan oleh CS dan jelaskan alasannya.",
+    "answer": "CS perlu memastikan pengguna telah menyelesaikan verifikasi tambahan untuk perdagangan Saham AS dan memiliki saldo USD. Verifikasi diperlukan agar akses produk sesuai ketentuan, sedangkan saldo USD diperlukan karena transaksi Saham AS dilakukan dalam mata uang USD. Setelah itu pengguna dapat memilih aset, jenis order, meninjau rincian, lalu mengonfirmasi transaksi.",
     "points": 10
   },
   {
     "id": "US Stock-6",
     "product": "US Stock",
     "number": 6,
-    "question": "Studi Kasus Fraud US Stock: Pengguna melaporkan bahwa ada transaksi pembelian saham TSLA senilai $5.000 yang tidak ia lakukan. Pengguna mengklaim tidak pernah login hari itu. Jelaskan langkah investigasi CS dan eskalasi yang diperlukan.",
-    "answer": "TAHAP 1 – VERIFIKASI AWAL (0-30 menit):\n1. Konfirmasi identitas pelapor dengan pertanyaan verifikasi\n2. Tanyakan apakah pengguna pernah share kredensial, klik link mencurigakan, atau login di perangkat orang lain\n3. Cek log login: IP address, device fingerprint, waktu login\n4. Cek riwayat transaksi untuk order TSLA tersebut: apakah ada order ID, timestamp\n\nTAHAP 2 – TINDAKAN DARURAT:\n5. Blokir akun sementara untuk mencegah kerugian lebih lanjut\n6. Cek apakah ada withdrawal IDR setelah transaksi mencurigakan\n7. Jika saham masih dalam posisi open: diskusikan dengan pengguna apakah perlu di-close\n\nTAHAP 3 – ESKALASI:\n8. Eskalasi ke tim Fraud dengan dokumentasi lengkap\n9. Koordinasi dengan tim Legal untuk kemungkinan dispute ke broker AS (Alpaca)\n10. Laporan ke tim Keamanan untuk analisis forensik digital\n\nTAHAP 4 – KOMUNIKASI PENGGUNA:\n11. Beri update berkala (setiap 2-3 hari kerja)\n12. Minta pengguna membuat laporan polisi\n13. Estimasi penyelesaian investigasi: 14-21 hari kerja",
+    "question": "Bandingkan market order dan limit order dari sisi tujuan, kepastian harga, serta kemungkinan order berhasil dijalankan.",
+    "answer": "Market order mengutamakan kecepatan dan dijalankan pada harga terbaik yang tersedia, tetapi harga akhirnya tidak dijamin sama dengan harga yang terlihat. Limit order mengutamakan batas harga: pembelian tidak dilakukan di atas batas yang ditentukan dan penjualan tidak dilakukan di bawah batas tersebut. Namun, limit order belum tentu terisi jika tidak ada pihak lain yang cocok pada harga itu.",
     "points": 10
   },
   {
     "id": "US Stock-7",
     "product": "US Stock",
     "number": 7,
-    "question": "Jelaskan bagaimana mekanisme pembayaran dividen bekerja untuk pengguna US Stock di Reku, termasuk kapan dividen dibayarkan, dalam mata uang apa, dan apakah ada pajak yang dikenakan.",
-    "answer": "Mekanisme Dividen US Stock di Reku:\n\n1. Hak Dividen:\n- Pengguna yang memiliki saham (termasuk fraksional) pada tanggal Record Date berhak atas dividen\n- Dividen dibayarkan proporsional sesuai jumlah lembar/fraksi yang dimiliki\n\n2. Proses Pembayaran:\n- Dividen dari perusahaan AS dibayarkan dalam USD ke broker (Alpaca)\n- Reku mengkonversi USD ke IDR menggunakan kurs saat itu\n- Dana dikreditkan ke saldo IDR pengguna di Reku\n\n3. Waktu Pembayaran:\n- Mengikuti jadwal pembayaran dividen perusahaan AS (Pay Date)\n- Ada delay beberapa hari setelah Pay Date untuk proses konversi dan kreditisasi\n\n4. Pajak:\n- Withholding Tax AS: 30% untuk non-resident alien (WNI)\n- Jika ada P3B (Perjanjian Penghindaran Pajak Berganda) Indonesia-AS yang berlaku: tarif bisa lebih rendah\n- Di Indonesia: dividen yang diterima dari LN dapat dikenakan PPh\n- Reku membantu menyediakan informasi pajak namun pengguna bertanggung jawab pelaporan pajak pribadi",
+    "question": "Jelaskan perbedaan memasukkan market order berdasarkan jumlah lembar dan berdasarkan nominal dolar pada Saham AS Reku.",
+    "answer": "Market order berdasarkan lembar memakai jumlah saham sebagai ukuran pesanan. Market order berdasarkan dolar memakai jumlah uang yang ingin dibelanjakan dan tersedia untuk pembelian. Keduanya dapat menghasilkan kepemilikan pecahan. CS perlu membantu pengguna membedakan “berapa lembar” dari “berapa dolar” agar nominal pesanan tidak keliru.",
     "points": 10
   },
   {
     "id": "US Stock-8",
     "product": "US Stock",
     "number": 8,
-    "question": "Seorang pengguna mengeluh bahwa ia mencoba melakukan order saham NVDA namun selalu gagal dengan pesan 'Order Rejected'. Sebutkan minimal 5 kemungkinan penyebab dan bagaimana CS menanganinya.",
-    "answer": "Kemungkinan Penyebab Order Rejected:\n\n1. Saldo IDR tidak mencukupi untuk nilai order + biaya (0,278%)\n→ CS: Bantu pengguna hitung total yang dibutuhkan, sarankan deposit jika kurang\n\n2. Order dilakukan di luar jam trading yang diizinkan\n→ CS: Jelaskan jadwal 4 sesi trading dan cek kapan order dilakukan\n\n3. Harga limit order terlalu jauh dari harga pasar (di luar batas wajar sistem)\n→ CS: Sarankan pengguna adjust harga limit mendekati harga pasar\n\n4. Saham NVDA sedang dalam kondisi halt/suspend di bursa AS (misal: menunggu pengumuman penting)\n→ CS: Informasikan status saham dan estimasi trading resume\n\n5. Limit transaksi harian pengguna sudah tercapai sesuai level KYC\n→ CS: Informasikan limit dan prosedur upgrade KYC\n\n6. Maintenance sistem/update platform Reku\n→ CS: Informasikan jadwal maintenance dan minta pengguna coba lagi setelah selesai\n\n7. Order size terlalu kecil (di bawah minimum $1 setara IDR)\n→ CS: Informasikan minimum order dan minta pengguna tingkatkan nominal",
+    "question": "Mengapa harga akhir market order dapat berbeda dari harga yang baru saja dilihat pengguna? Jelaskan faktor penyebab dan cara mengurangi risikonya.",
+    "answer": "Harga di layar dapat merupakan harga transaksi terakhir, sedangkan harga yang tersedia bisa berubah sebelum order bertemu penjual atau pembeli. Perbedaan makin mungkin saat transaksi sepi, harga bergerak cepat, atau selisih harga beli dan jual melebar. Pengguna dapat memakai limit order jika batas harga lebih penting daripada kecepatan, serta memeriksa kembali sesi dan rincian order.",
     "points": 10
   },
   {
     "id": "US Stock-9",
     "product": "US Stock",
     "number": 9,
-    "question": "Jelaskan risiko-risiko utama yang harus dipahami pengguna sebelum berinvestasi di US Stock melalui Reku, dan bagaimana CS harus mengkomunikasikan risiko ini kepada pengguna yang baru tertarik.",
-    "answer": "Risiko Utama US Stock di Reku:\n\n1. Risiko Pasar (Market Risk):\nHarga saham bisa naik maupun turun. Nilai investasi tidak dijamin dan bisa mengalami kerugian.\n\n2. Risiko Kurs (Currency Risk):\nKarena underlying saham dalam USD, pergerakan kurs USD/IDR mempengaruhi nilai investasi dalam Rupiah.\n\n3. Risiko Likuiditas:\nDi Extended Hours, bid-ask spread lebih lebar dan tidak semua saham liquid → harga eksekusi bisa kurang optimal.\n\n4. Risiko Counterparty:\nSebagai produk kontrak (bukan kepemilikan saham langsung), ada risiko terkait pihak ketiga (broker AS).\n\n5. Risiko Regulasi:\nPerubahan regulasi di AS atau Indonesia bisa mempengaruhi ketersediaan produk.\n\n6. Risiko Delisting:\nJika saham di-delist dari bursa AS, nilai investasi bisa terpengaruh.\n\nCara CS Mengkomunikasikan:\n- Sampaikan dengan bahasa sederhana, hindari jargon berlebihan\n- Tidak memberikan rekomendasi investasi (bukan financial advisor)\n- Arahkan pengguna ke disclaimer dan dokumen risiko resmi Reku\n- Pastikan pengguna sudah membaca dan memahami Risk Disclosure sebelum bertransaksi",
+    "question": "Jabarkan empat sesi dalam fitur Trading 24 Jam Saham AS dan jelaskan arti “24 jam” yang benar bagi pengguna di Indonesia.",
+    "answer": "Empat sesi tersebut adalah Overnight, Pre-Market, Regular, dan After-Hours. Sesi berjalan berurutan sehingga transaksi tersedia hampir terus-menerus pada hari kerja, secara umum dari Senin pagi sampai Sabtu pagi WIB. “24 jam” bukan berarti bursa selalu buka tujuh hari; akhir pekan dan hari libur perdagangan tetap berlaku, dan tidak semua saham selalu mendukung setiap sesi.",
     "points": 10
   },
   {
     "id": "US Stock-10",
     "product": "US Stock",
     "number": 10,
-    "question": "Studi Kasus: Pada tanggal 15 Januari 2025, Dewi membeli 10 fraksional saham META seharga $590/lembar, total $5.900. Kurs saat itu Rp 16.000/USD. Pada 20 Januari 2025, META turun ke $560/lembar dan Dewi memutuskan jual semua. Kurs saat jual Rp 15.900/USD. Hitunglah: (a) Nilai beli IDR + biaya; (b) Nilai jual IDR + biaya; (c) Total P/L Dewi dalam IDR.",
-    "answer": "Nilai Beli USD = 10 × $590 = $5.900\nNilai Beli IDR = $5.900 × Rp 16.000 = Rp 94.400.000\n(a) Biaya beli = 0,278% × Rp 94.400.000 = Rp 262.432\nTotal keluar = Rp 94.400.000 + Rp 262.432 = Rp 94.662.432\n\nNilai Jual USD = 10 × $560 = $5.600\nNilai Jual IDR = $5.600 × Rp 15.900 = Rp 89.040.000\n(b) Biaya jual = 0,278% × Rp 89.040.000 = Rp 247.531\nTotal masuk bersih = Rp 89.040.000 – Rp 247.531 = Rp 88.792.469\n\n(c) Total P/L:\nLoss dari saham = Rp 89.040.000 – Rp 94.400.000 = –Rp 5.360.000\nTotal biaya = Rp 262.432 + Rp 247.531 = Rp 509.963\nTotal Loss Bersih = –Rp 5.360.000 – Rp 509.963 = –Rp 5.869.963\n\nKeterangan: Dewi mengalami kerugian Rp 5.869.963 karena: (1) harga saham turun $30/lembar, (2) kurs USD melemah Rp 100, dan (3) biaya transaksi",
+    "question": "Jelaskan pengaruh Daylight Saving Time di Amerika Serikat terhadap jadwal perdagangan Saham AS dalam WIB dan informasi apa yang sebaiknya disampaikan CS.",
+    "answer": "Saat Daylight Saving Time berlaku, jadwal sesi dalam WIB bergeser sekitar satu jam lebih awal dibanding periode di luar DST. Karena tanggal penerapan dapat berubah dan ada hari libur bursa, CS sebaiknya tidak hanya mengandalkan hafalan jam, tetapi meminta pengguna melihat status sesi dan jadwal terbaru di aplikasi atau Pusat Informasi Reku.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-11",
+    "product": "US Stock",
+    "number": 11,
+    "question": "Apa yang terjadi ketika pengguna memasukkan order saat akhir pekan atau ketika sesi yang mendukung order tersebut belum dimulai? Jelaskan tanpa menjanjikan transaksi pasti berhasil.",
+    "answer": "Order dapat diterima atau masuk antrean, tetapi baru diajukan atau diproses ketika sesi yang sesuai dibuka. Order tetap bergantung pada jenis order, dukungan saham, harga, dan ketersediaan lawan transaksi. Karena itu CS tidak boleh menjanjikan harga tertentu atau memastikan order pasti terisi.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-12",
+    "product": "US Stock",
+    "number": 12,
+    "question": "Jelaskan tiga alasan limit order belum terisi walaupun pengguna merasa sudah memasang harga yang tepat.",
+    "answer": "Pertama, belum ada penjual atau pembeli yang cocok pada harga dan jumlah tersebut. Kedua, saham mungkin tidak mendukung sesi perdagangan yang dipilih. Ketiga, harga limit dapat berada di luar rentang yang dianggap wajar. Selain itu, antrean order lain dapat lebih dahulu mendapat pasangan. Limit order memberi batas harga, bukan jaminan eksekusi.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-13",
+    "product": "US Stock",
+    "number": 13,
+    "question": "Mengapa harga pada grafik bukan bukti bahwa limit order seharusnya sudah terisi? Jelaskan dengan bahasa yang mudah dipahami pengguna.",
+    "answer": "Grafik umumnya menunjukkan harga referensi atau harga transaksi terakhir. Angka itu tidak membuktikan bahwa masih ada jumlah saham yang tersedia bagi order pengguna pada harga yang sama. Agar order terisi, harus ada pihak lain yang bersedia bertransaksi pada harga tersebut dan order pengguna harus mendapat pasangan.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-14",
+    "product": "US Stock",
+    "number": 14,
+    "question": "Jelaskan risiko melakukan transaksi pada sesi di luar jam reguler dan tindakan sederhana yang dapat dilakukan pengguna untuk lebih berhati-hati.",
+    "answer": "Di luar jam reguler, jumlah pembeli dan penjual biasanya lebih sedikit. Akibatnya harga dapat bergerak lebih tajam, selisih harga beli dan jual lebih lebar, dan order lebih sulit terisi. Pengguna dapat mengecek harga beli-jual, memakai limit order, menghindari keputusan terburu-buru saat ada berita, dan memastikan aset mendukung sesi tersebut.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-15",
+    "product": "US Stock",
+    "number": 15,
+    "question": "Biaya transaksi Saham AS adalah 0,25% ditambah PPN 11% atas biaya tersebut. Tunjukkan mengapa angka efektifnya menjadi 0,278%, lalu hitung biaya untuk transaksi $250.",
+    "answer": "PPN dihitung atas biaya transaksi, bukan langsung atas nilai saham. Biaya dasar = 0,25% × $250 = $0,625. PPN = 11% × $0,625 = $0,06875. Total biaya = $0,69375 atau sekitar $0,69–$0,70 sesuai pembulatan sistem. Secara efektif: 0,25% × 1,11 = 0,2775%, yang dibulatkan menjadi 0,278%.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-16",
+    "product": "US Stock",
+    "number": 16,
+    "question": "Jelaskan mengapa CS harus membedakan biaya transaksi, pajak dividen, dan perubahan kurs ketika menerangkan hasil investasi Saham AS.",
+    "answer": "Biaya transaksi dikenakan saat beli atau jual. Pajak dividen dikenakan pada pendapatan dividen, dengan tarif yang dicantumkan Reku sebesar 15%. Perubahan kurs memengaruhi nilai saat USD dibandingkan atau dikonversi ke rupiah, tetapi bukan biaya transaksi. Memisahkan ketiganya mencegah pengguna menyimpulkan bahwa seluruh selisih saldo adalah biaya Reku.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-17",
+    "product": "US Stock",
+    "number": 17,
+    "question": "Jelaskan syarat umum agar pengguna berhak menerima dividen Saham AS di Reku, cara menghitungnya, dan mengapa dividen tidak boleh dijanjikan.",
+    "answer": "Pengguna perlu memiliki posisi sesuai ketentuan tanggal ex-dividen; aturan Reku menyebut kepemilikan kontrak sehari sebelum tanggal ex-dividen. Dividen kotor dihitung dari jumlah saham atau pecahan saham dikali dividen per saham, lalu dipotong pajak 15%. Reku juga menyebut jumlah yang diterima minimal $0,01. Dividen tidak boleh dijanjikan karena perusahaan dapat mengubah atau tidak membagikannya.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-18",
+    "product": "US Stock",
+    "number": 18,
+    "question": "Hitung dividen bersih untuk kepemilikan 12,5 saham jika perusahaan membayar dividen $0,80 per saham dan pajak dividen 15%. Tunjukkan urutannya.",
+    "answer": "Dividen kotor = 12,5 × $0,80 = $10,00. Pajak = 15% × $10,00 = $1,50. Dividen bersih = $10,00 − $1,50 = $8,50. Nilai ini berada di atas batas minimum penerimaan $0,01.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-19",
+    "product": "US Stock",
+    "number": 19,
+    "question": "Jelaskan dampak stock split terhadap jumlah saham, harga per saham, dan nilai total kepemilikan tepat setelah penyesuaian.",
+    "answer": "Stock split menambah jumlah saham dan menurunkan harga per saham dengan perbandingan yang sama. Contoh split 2 banding 1: 3 saham menjadi 6 saham dan harga per saham secara teori menjadi setengah. Tepat setelah penyesuaian, nilai total kepemilikan secara teori tidak berubah hanya karena split; setelah perdagangan berjalan, nilai tetap dapat naik atau turun mengikuti pasar.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-20",
+    "product": "US Stock",
+    "number": 20,
+    "question": "Jelaskan dua sumber hasil investasi Saham AS dan dua risiko yang dapat membuat hasil dalam rupiah berbeda dari harapan pengguna.",
+    "answer": "Dua sumber hasil adalah perubahan harga saham dan dividen jika perusahaan membagikannya. Hasil rupiah dapat berbeda karena harga saham bisa turun dan nilai tukar USD terhadap rupiah dapat berubah. Biaya transaksi dan pajak dividen juga mengurangi hasil bersih. Karena itu kenaikan harga saham dalam USD belum tentu menghasilkan kenaikan rupiah dengan persentase yang sama.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-21",
+    "product": "US Stock",
+    "number": 21,
+    "question": "Jabarkan cara menilai sebuah saham tanpa hanya mengikuti nama perusahaan yang sedang populer. Gunakan sedikitnya empat hal yang mudah dipahami.",
+    "answer": "Pengguna dapat menilai: bagaimana perusahaan menghasilkan uang; apakah penjualan dan laba berkembang; apakah utangnya masih wajar; apakah bisnisnya memiliki pesaing dan prospek yang baik; apakah harga saham sudah terlalu mahal dibanding kinerjanya; serta risiko dari berita atau aturan baru. Kesimpulan harus disesuaikan dengan tujuan dan kemampuan menanggung kerugian, bukan popularitas semata.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-22",
+    "product": "US Stock",
+    "number": 22,
+    "question": "Jelaskan mengapa diversifikasi dapat mengurangi risiko tertentu tetapi tidak menjamin portofolio bebas rugi.",
+    "answer": "Menyebar dana ke beberapa perusahaan, sektor, atau ETF mengurangi ketergantungan pada satu perusahaan. Jika satu aset bermasalah, dampaknya tidak sebesar bila seluruh dana berada di sana. Namun saat pasar secara luas turun, banyak aset dapat turun bersama. Diversifikasi mengelola konsentrasi risiko, bukan menghapus risiko investasi.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-23",
+    "product": "US Stock",
+    "number": 23,
+    "question": "Bandingkan strategi membeli sekaligus dengan membeli bertahap untuk Saham AS. Jelaskan manfaat dan keterbatasan masing-masing tanpa menyatakan salah satunya selalu lebih baik.",
+    "answer": "Membeli sekaligus membuat seluruh dana segera ikut pergerakan pasar; ini menguntungkan bila harga naik setelah pembelian, tetapi dampak salah waktu juga lebih besar. Membeli bertahap menyebarkan waktu masuk dan mengurangi tekanan menebak satu harga terbaik, tetapi dapat tertinggal bila pasar terus naik dan tetap tidak menjamin untung. Pilihan bergantung pada tujuan, jangka waktu, dan kesiapan risiko.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-24",
+    "product": "US Stock",
+    "number": 24,
+    "question": "Seorang pengguna melihat kalkulator potensi keuntungan di halaman Reku. Jelaskan cara membaca hasilnya secara bertanggung jawab dan tiga hal yang tidak boleh disimpulkan dari simulasi tersebut.",
+    "answer": "Kalkulator adalah ilustrasi berdasarkan angka dan periode yang dipilih. Hasilnya bukan janji keuntungan, bukan ramalan harga, dan bukan jaminan pola masa lalu akan berulang. Simulasi juga tidak otomatis menggambarkan seluruh pengaruh kondisi ekonomi, pasar, kurs, biaya, dan pajak. Pengguna tetap perlu menilai risiko dan kemampuan keuangannya.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-25",
+    "product": "US Stock",
+    "number": 25,
+    "question": "Jelaskan langkah penanganan CS ketika pengguna mengeluhkan saldo atau nilai portofolio Saham AS yang dianggap tidak sesuai, tanpa langsung menyimpulkan ada kesalahan sistem.",
+    "answer": "CS perlu memverifikasi akun, meminta nama aset, waktu, order ID, nominal, dan tangkapan layar; lalu memeriksa status order, jumlah saham, harga eksekusi, biaya, dividen atau aksi korporasi, serta tampilan USD versus rupiah. Jelaskan temuan dengan perhitungan yang dapat diikuti. Jika data tetap tidak cocok, dokumentasikan bukti dan eskalasi ke tim terkait tanpa menjanjikan hasil sebelum pemeriksaan selesai.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-26",
+    "product": "US Stock",
+    "number": 26,
+    "question": "Studi Kasus 1 — Raka memasang limit buy saham XYZ di $50 pada sesi Overnight. Grafik sempat menunjukkan $49,90, tetapi hingga sesi berganti order belum terisi. Jelaskan kemungkinan penyebabnya dan respons CS yang tepat.",
+    "answer": "Harga grafik adalah referensi atau transaksi terakhir, bukan bukti ada penjual yang tersedia untuk order Raka. Kemungkinan tidak ada pasangan pada $50 untuk jumlahnya, antrean lain lebih dahulu, saham kurang aktif di sesi Overnight, atau ada batas harga/ketersediaan sesi. CS harus memeriksa status dan rincian order, menjelaskan perbedaan grafik dengan harga yang benar-benar tersedia, serta mengingatkan bahwa limit order membatasi harga tetapi tidak menjamin terisi. Jangan menyatakan sistem gagal sebelum ada bukti.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-27",
+    "product": "US Stock",
+    "number": 27,
+    "question": "Studi Kasus 2 — Maya membeli saham senilai $1.000 saat kurs Rp16.000/USD. Nilai saham naik 8%, lalu ia menjual saat kurs Rp15.200/USD. Gunakan biaya 0,278% untuk beli dan jual. Hitung perkiraan hasil bersih dalam rupiah dan jelaskan mengapa kenaikan 8% tidak menjadi keuntungan rupiah 8%.",
+    "answer": "Biaya beli = $1.000 × 0,278% = $2,78. Total modal = $1.002,78 × Rp16.000 = Rp16.044.480. Nilai jual kotor = $1.080. Biaya jual = $1.080 × 0,278% = $3,0024. Hasil jual bersih = $1.076,9976 × Rp15.200 = sekitar Rp16.370.364. Perkiraan laba bersih = Rp16.370.364 − Rp16.044.480 = Rp325.884, sekitar 2,03% dari modal. Kenaikan saham 8% terpotong biaya dan pelemahan USD terhadap rupiah.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-28",
+    "product": "US Stock",
+    "number": 28,
+    "question": "Studi Kasus 3 — Lita memiliki 7,5 saham pada hari yang memenuhi syarat dividen. Dividen yang diumumkan $0,12 per saham. Hitung dividen kotor, pajak 15%, dan dividen bersih. Jelaskan pula apakah jumlah tersebut memenuhi batas minimum $0,01.",
+    "answer": "Dividen kotor = 7,5 × $0,12 = $0,90. Pajak = 15% × $0,90 = $0,135. Dividen bersih = $0,90 − $0,135 = $0,765, dengan tampilan akhir mengikuti pembulatan sistem. Nilai bersih tersebut lebih besar dari $0,01 sehingga memenuhi batas minimum penerimaan. CS juga perlu memastikan posisi Lita benar-benar tercatat sesuai ketentuan tanggal ex-dividen.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-29",
+    "product": "US Stock",
+    "number": 29,
+    "question": "Studi Kasus 4 — Pengguna menerima telepon dari orang yang mengaku sebagai staf Reku. Penelpon mengetahui nama dan nilai portofolionya, lalu meminta OTP agar “penjualan saham yang tertahan” dapat dibatalkan. Pengguna sudah memberikan OTP tetapi belum melihat transaksi baru. Uraikan tindakan CS secara berurutan.",
+    "answer": "Ini harus diperlakukan sebagai dugaan pengambilalihan akun. CS perlu: memverifikasi identitas melalui prosedur resmi; segera membantu mengamankan atau membatasi akun sesuai kewenangan; mengingatkan pengguna menghentikan komunikasi dan tidak memberikan OTP, PIN, atau kata sandi lagi; meminta pengguna mengganti kredensial dan memeriksa perangkat serta riwayat login/order; mencatat waktu, nomor penelpon, bukti, dan OTP yang terungkap tanpa meminta isi OTP baru; lalu mengeskalasi ke tim Security/Fraud. CS tidak boleh menunggu munculnya kerugian karena OTP sudah bocor dan tidak boleh menjanjikan pengembalian dana sebelum investigasi.",
+    "points": 10
+  },
+  {
+    "id": "US Stock-30",
+    "product": "US Stock",
+    "number": 30,
+    "question": "Studi Kasus 5 — Dimas menaruh 80% dana pada satu saham teknologi karena harganya naik tajam sebulan terakhir. Setelah laporan perusahaan mengecewakan, saham turun 25% pada sesi di luar jam reguler. Dimas ingin langsung menjual semuanya dengan market order. Analisis risiko portofolionya dan susun jawaban CS yang informatif tanpa memberi keputusan investasi pribadi.",
+    "answer": "Portofolio Dimas sangat terkonsentrasi sehingga berita satu perusahaan berdampak besar. Penurunan di luar jam reguler juga dapat disertai transaksi lebih sepi, harga lebih mudah berubah, dan selisih beli-jual lebih lebar; market order mengutamakan eksekusi, bukan harga tertentu. CS dapat menjelaskan kondisi itu, perbedaan market dan limit order, meminta Dimas memeriksa estimasi serta sesi sebelum konfirmasi, dan mengingatkan manfaat penyebaran aset sesuai profil risiko. Keputusan jual atau tahan tetap milik Dimas; CS tidak boleh menjamin harga akan pulih atau menyuruhnya memilih tindakan tertentu.",
     "points": 10
   },
   {
