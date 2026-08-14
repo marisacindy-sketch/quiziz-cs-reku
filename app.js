@@ -358,9 +358,10 @@ async function refreshSharedConfig() {
   return { settingsLoaded: Boolean(settingsLoaded), questionsLoaded: Boolean(questionsLoaded) };
 }
 
-function callSettingsConnector(url, action, settings = null, extraParams = {}) {
+function callSettingsConnector(url, action, settings = null, extraParams = {}, options = {}) {
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
   return new Promise((resolve) => {
+    const timeoutMs = Number(options.timeoutMs) || 8000;
     const callbackName = `quizizSettings_${Date.now()}_${Math.round(Math.random() * 10000)}`;
     const script = document.createElement("script");
     const cleanup = () => {
@@ -370,7 +371,7 @@ function callSettingsConnector(url, action, settings = null, extraParams = {}) {
     const timeout = window.setTimeout(() => {
       cleanup();
       resolve(false);
-    }, 8000);
+    }, timeoutMs);
 
     window[callbackName] = (payload) => {
       window.clearTimeout(timeout);
@@ -435,22 +436,33 @@ async function publishRemoteQuestions() {
   const started = await callSettingsConnector(url, "begin_questions_upload", null, {
     uploadId,
     total: chunks.length,
-  });
+  }, { timeoutMs: 3500 });
   if (!started?.ok) return false;
 
-  for (let index = 0; index < chunks.length; index += 1) {
-    const saved = await callSettingsConnector(url, "save_questions_chunk", null, {
-      uploadId,
-      index,
-      chunk: chunks[index],
-    });
-    if (!saved?.ok) return false;
+  for (let start = 0; start < chunks.length; start += 6) {
+    const batch = chunks.slice(start, start + 6);
+    const savedBatch = await Promise.all(
+      batch.map((chunk, offset) =>
+        callSettingsConnector(
+          url,
+          "save_questions_chunk",
+          null,
+          {
+            uploadId,
+            index: start + offset,
+            chunk,
+          },
+          { timeoutMs: 3500 },
+        ),
+      ),
+    );
+    if (savedBatch.some((saved) => !saved?.ok)) return false;
   }
 
   const finished = await callSettingsConnector(url, "finish_questions_upload", null, {
     uploadId,
     total: chunks.length,
-  });
+  }, { timeoutMs: 5000 });
   return Boolean(finished?.ok);
 }
 
@@ -2489,22 +2501,30 @@ function initEvents() {
     saveSettings();
     els.settingsSavedText.textContent = "Saving rules...";
     const synced = await publishRemoteSettings();
-    const questionsSynced = await publishRemoteQuestions();
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
     const allowedCount = expectedEmailList().length;
-    const syncCopy =
-      synced && questionsSynced
-        ? "Synced rules and questions for trainees."
-        : synced
-          ? "Rules synced. Questions stayed local because connector question sync did not confirm."
-          : "Saved here. Redeploy the connector so trainees get this globally.";
     els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
       state.settings.closeDay,
     )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
       state.settings.activeProduct
-    }. Allowed emails: ${allowedCount}. ${syncCopy}`;
+    }. Allowed emails: ${allowedCount}. ${
+      synced ? "Rules synced for trainees. Syncing questions..." : "Saved here, but connector did not confirm the trainee sync."
+    }`;
+
+    if (synced) {
+      const questionsSynced = await publishRemoteQuestions();
+      els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
+        state.settings.closeDay,
+      )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
+        state.settings.activeProduct
+      }. Allowed emails: ${allowedCount}. ${
+        questionsSynced
+          ? "Rules and questions are synced for trainees."
+          : "Rules synced. Question sync needs the latest Apps Script connector deployment."
+      }`;
+    }
   });
 
   els.searchInput.addEventListener("input", (event) => {
