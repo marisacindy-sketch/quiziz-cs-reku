@@ -359,7 +359,6 @@ function loadRemoteSettings() {
 
 async function refreshSharedConfig() {
   const settingsLoaded = await loadRemoteSettings();
-  const questionsLoaded = await loadRemoteQuestions();
   if (!settingsLoaded && !isOwner()) {
     state.settings = normalizeSettings({
       ...state.settings,
@@ -368,7 +367,7 @@ async function refreshSharedConfig() {
     });
     saveSettings();
   }
-  return { settingsLoaded: Boolean(settingsLoaded), questionsLoaded: Boolean(questionsLoaded) };
+  return { settingsLoaded: Boolean(settingsLoaded), questionsLoaded: false };
 }
 
 function callSettingsConnector(url, action, settings = null, extraParams = {}, options = {}) {
@@ -2673,12 +2672,11 @@ async function boot() {
   } catch {
     state.questions = window.QUIZ_DATA || [];
   }
-  const ownerQuestions = ownerQuestionOverrides();
+  const ownerQuestions = isOwner() ? ownerQuestionOverrides() : [];
   if (ownerQuestions.length) {
     state.questions = ownerQuestions;
   }
   await loadRemoteSettings();
-  if (!ownerQuestions.length) await loadRemoteQuestions();
   initEvents();
   if (state.currentUser) showApp();
 }
