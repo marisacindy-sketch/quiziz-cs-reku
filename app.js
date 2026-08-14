@@ -8,6 +8,7 @@ const LEGACY_CONNECTOR_URLS = [
 ];
 const PRODUCT_ORDER = ["General", "Kripto Spot", "US Stock", "Perpetuals"];
 const POSITION_OPTIONS = ["Customer Success Associate", "Customer Success Squad Lead / QC"];
+const QUESTION_SYNC_CHUNK_SIZE = 1200;
 const DEFAULT_TRAINEE_ROSTER = [
   "Frans William Tobing | frans.william@reku.id | Customer Success Associate",
   "Abimas Ramadhan | abimas.ramdhan@reku.id | Customer Success Associate",
@@ -351,6 +352,12 @@ function loadRemoteSettings() {
   return callSettingsConnector(url, "get_settings");
 }
 
+async function refreshSharedConfig() {
+  const settingsLoaded = await loadRemoteSettings();
+  const questionsLoaded = await loadRemoteQuestions();
+  return { settingsLoaded: Boolean(settingsLoaded), questionsLoaded: Boolean(questionsLoaded) };
+}
+
 function callSettingsConnector(url, action, settings = null, extraParams = {}) {
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
   return new Promise((resolve) => {
@@ -419,23 +426,32 @@ async function loadRemoteQuestions() {
   return true;
 }
 
-function publishRemoteQuestions() {
+async function publishRemoteQuestions() {
   const url = activeConnectorUrl();
   if (!isValidConnectorUrl(url) || !state.questions.length) return Promise.resolve(false);
-  const payload = {
-    action: "save_questions",
-    questions: normalizeQuestionBank(state.questions),
-  };
-  postConnectorPayload(url, payload);
-  return fetch(url, {
-    method: "POST",
-    mode: "no-cors",
-    credentials: "include",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  })
-    .then(() => true)
-    .catch(() => false);
+  const questionText = JSON.stringify(normalizeQuestionBank(state.questions));
+  const chunks = questionText.match(new RegExp(`.{1,${QUESTION_SYNC_CHUNK_SIZE}}`, "g")) || [];
+  const uploadId = `questions-${Date.now()}-${Math.round(Math.random() * 100000)}`;
+  const started = await callSettingsConnector(url, "begin_questions_upload", null, {
+    uploadId,
+    total: chunks.length,
+  });
+  if (!started?.ok) return false;
+
+  for (let index = 0; index < chunks.length; index += 1) {
+    const saved = await callSettingsConnector(url, "save_questions_chunk", null, {
+      uploadId,
+      index,
+      chunk: chunks[index],
+    });
+    if (!saved?.ok) return false;
+  }
+
+  const finished = await callSettingsConnector(url, "finish_questions_upload", null, {
+    uploadId,
+    total: chunks.length,
+  });
+  return Boolean(finished?.ok);
 }
 
 function publishOwnerQuestionOverrides() {
@@ -1893,8 +1909,12 @@ async function login(email, password) {
     throw new Error("Use a valid email and a password with at least 6 characters.");
   }
 
+  const remote = await refreshSharedConfig();
   const invitedEmails = expectedEmailList();
   if (!invitedEmails.includes(normalizedEmail)) {
+    if (!remote.settingsLoaded) {
+      throw new Error("Quiz settings have not synced yet. Refresh once, then try again.");
+    }
     throw new Error("This email is not on the quiz access list. Ask the owner to add it first.");
   }
 

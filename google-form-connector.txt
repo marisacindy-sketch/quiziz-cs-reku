@@ -1,7 +1,8 @@
-var CONNECTOR_VERSION = '2026-08-14-v9';
+var CONNECTOR_VERSION = '2026-08-14-v10';
 var FORM_EDITORS = ['marisacindy@reku.id', 'marisa@reku.id'];
 var SETTINGS_KEY = 'quiziz-weekly-settings';
 var QUESTIONS_KEY_PREFIX = 'quiziz-cs-reku-questions';
+var QUESTION_UPLOAD_KEY_PREFIX = 'quiziz-cs-reku-question-upload';
 var SUBMISSIONS_KEY_PREFIX = 'quiziz-cs-reku-submissions';
 var PASSWORD_RESETS_KEY = 'quiziz-password-resets';
 var STORE_CHUNK_SIZE = 7000;
@@ -30,6 +31,13 @@ function doGet(e) {
     if (action === 'get_password_resets') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, resets: readPasswordResets() });
     if (action === 'save_password_reset') return jsonpOrJson(e, savePasswordReset(e.parameter.email));
     if (action === 'get_questions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, questions: readRemoteQuestions() });
+    if (action === 'begin_questions_upload') return jsonpOrJson(e, beginQuestionsUpload(e.parameter.uploadId, e.parameter.total));
+    if (action === 'save_questions_chunk') {
+      return jsonpOrJson(e, saveQuestionsChunk(e.parameter.uploadId, e.parameter.index, e.parameter.chunk));
+    }
+    if (action === 'finish_questions_upload') {
+      return jsonpOrJson(e, finishQuestionsUpload(e.parameter.uploadId, e.parameter.total));
+    }
     if (action === 'get_submissions') return jsonpOrJson(e, { ok: true, version: CONNECTOR_VERSION, submissions: readRemoteSubmissions() });
     if (action === 'save_submission') {
       return jsonpOrJson(e, saveRemoteSubmission(parseJson(e.parameter.submission, {}).submission || parseJson(e.parameter.payload, {}).submission || {}));
@@ -203,6 +211,60 @@ function saveRemoteQuestions(questionsToSave) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function beginQuestionsUpload(uploadId, total) {
+  var id = cleanUploadId(uploadId);
+  var count = Number(total) || 0;
+  if (!id || count < 1) return { ok: false, version: CONNECTOR_VERSION, error: 'Invalid question upload.' };
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty(questionUploadMetaKey(id), JSON.stringify({ total: count, startedAt: new Date().toISOString() }));
+  return { ok: true, version: CONNECTOR_VERSION, uploadId: id, total: count };
+}
+
+function saveQuestionsChunk(uploadId, index, chunk) {
+  var id = cleanUploadId(uploadId);
+  var chunkIndex = Number(index);
+  if (!id || isNaN(chunkIndex) || chunkIndex < 0) {
+    return { ok: false, version: CONNECTOR_VERSION, error: 'Invalid question chunk.' };
+  }
+  PropertiesService.getScriptProperties().setProperty(questionUploadChunkKey(id, chunkIndex), String(chunk || ''));
+  return { ok: true, version: CONNECTOR_VERSION, uploadId: id, index: chunkIndex };
+}
+
+function finishQuestionsUpload(uploadId, total) {
+  var id = cleanUploadId(uploadId);
+  var count = Number(total) || 0;
+  if (!id || count < 1) return { ok: false, version: CONNECTOR_VERSION, error: 'Invalid question upload.' };
+
+  var props = PropertiesService.getScriptProperties();
+  var chunks = [];
+  for (var index = 0; index < count; index += 1) {
+    var part = props.getProperty(questionUploadChunkKey(id, index));
+    if (part === null) {
+      return { ok: false, version: CONNECTOR_VERSION, error: 'Missing question chunk ' + index + '.' };
+    }
+    chunks.push(part);
+  }
+
+  var result = saveRemoteQuestions(parseJson(chunks.join(''), []));
+  props.deleteProperty(questionUploadMetaKey(id));
+  for (var removeIndex = 0; removeIndex < count; removeIndex += 1) {
+    props.deleteProperty(questionUploadChunkKey(id, removeIndex));
+  }
+  return result;
+}
+
+function cleanUploadId(uploadId) {
+  return String(uploadId || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+}
+
+function questionUploadMetaKey(uploadId) {
+  return QUESTION_UPLOAD_KEY_PREFIX + '-' + uploadId + '-meta';
+}
+
+function questionUploadChunkKey(uploadId, index) {
+  return QUESTION_UPLOAD_KEY_PREFIX + '-' + uploadId + '-' + index;
 }
 
 function connectorPage(result) {
