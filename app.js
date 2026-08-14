@@ -71,16 +71,11 @@ function normalizeStoredSettings() {
 }
 
 function normalizeGoogleFormConfig(config) {
-  const rawConnectorUrl = config?.connectorUrl || config?.actionUrl || DEFAULT_CONNECTOR_URL;
-  const connectorUrl =
-    isValidConnectorUrl(rawConnectorUrl) && !LEGACY_CONNECTOR_URLS.includes(rawConnectorUrl)
-      ? rawConnectorUrl
-      : DEFAULT_CONNECTOR_URL;
   return {
     ...defaultGoogleFormConfig,
     ...(config || {}),
-    enabled: Boolean(connectorUrl),
-    connectorUrl,
+    enabled: true,
+    connectorUrl: DEFAULT_CONNECTOR_URL,
   };
 }
 
@@ -343,7 +338,7 @@ function saveGoogleFormConfig() {
 }
 
 function activeConnectorUrl() {
-  return state.googleForm.connectorUrl || DEFAULT_CONNECTOR_URL;
+  return DEFAULT_CONNECTOR_URL;
 }
 
 function loadRemoteSettings() {
