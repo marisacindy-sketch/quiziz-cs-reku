@@ -80,6 +80,8 @@ const state = {
   supabaseSettingsLoaded: false,
   supabaseTraineesLoaded: false,
   supabaseQuestionsLoaded: false,
+  supabaseLastSyncAt: "",
+  supabaseLastError: "",
   remoteTrainees: [],
 };
 
@@ -175,6 +177,13 @@ const els = {
   ownerEditor: document.querySelector("#ownerEditor"),
   editQuestionText: document.querySelector("#editQuestionText"),
   saveQuestionEdit: document.querySelector("#saveQuestionEdit"),
+  syncHealthCard: document.querySelector(".sync-health-card"),
+  syncHealthDot: document.querySelector("#syncHealthDot"),
+  syncHealthTitle: document.querySelector("#syncHealthTitle"),
+  syncHealthDetail: document.querySelector("#syncHealthDetail"),
+  syncHealthTrainees: document.querySelector("#syncHealthTrainees"),
+  syncHealthQuestions: document.querySelector("#syncHealthQuestions"),
+  syncHealthSubmissions: document.querySelector("#syncHealthSubmissions"),
   settingsSavedText: document.querySelector("#settingsSavedText"),
   metricSubmitted: document.querySelector("#metricSubmitted"),
   metricPending: document.querySelector("#metricPending"),
@@ -362,6 +371,44 @@ function hasSupabaseConfig() {
   return Boolean(SUPABASE_URL && SUPABASE_KEY && SUPABASE_URL.includes(".supabase.co"));
 }
 
+function markSupabaseSync(ok, message = "") {
+  state.supabaseReady = Boolean(ok);
+  if (ok) {
+    state.supabaseLastSyncAt = new Date().toISOString();
+    state.supabaseLastError = "";
+  } else if (message) {
+    state.supabaseLastError = message;
+  }
+  renderSyncHealth();
+}
+
+function formatSyncTime(value) {
+  if (!value) return "Never synced in this browser";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(value));
+}
+
+function renderSyncHealth() {
+  if (!els.syncHealthCard) return;
+  const online = Boolean(state.supabaseReady);
+  els.syncHealthCard.classList.toggle("is-online", online);
+  els.syncHealthCard.classList.toggle("is-offline", !online && Boolean(state.supabaseLastError));
+  els.syncHealthTitle.textContent = online ? "Supabase online" : "Supabase not confirmed";
+  els.syncHealthDetail.textContent = online
+    ? `Last sync: ${formatSyncTime(state.supabaseLastSyncAt)} WIB. Active product: ${state.settings.activeProduct}.`
+    : state.supabaseLastError || "Waiting for the first successful sync check.";
+  els.syncHealthTrainees.textContent = String(state.remoteTrainees.length || expectedEmailList().length || 0);
+  els.syncHealthQuestions.textContent = String(state.questions.length || 0);
+  els.syncHealthSubmissions.textContent = String(getSubmissions().length || 0);
+}
+
 async function supabaseRequest(path, options = {}) {
   if (!hasSupabaseConfig()) return null;
   const url = `${SUPABASE_URL}/rest/v1/${path}`;
@@ -374,11 +421,13 @@ async function supabaseRequest(path, options = {}) {
   try {
     const response = await fetch(url, { ...options, headers });
     if (!response.ok) throw new Error(`Supabase ${response.status}`);
+    markSupabaseSync(true);
     if (response.status === 204) return true;
     const text = await response.text();
     return text ? JSON.parse(text) : true;
   } catch (error) {
     console.warn("Supabase request failed", path, error);
+    markSupabaseSync(false, `Supabase failed: ${error.message}. Refresh once, then try again.`);
     return null;
   }
 }
@@ -470,6 +519,7 @@ async function loadSupabaseTrainees() {
     saveSettings();
   }
   state.supabaseTraineesLoaded = state.remoteTrainees.length > 0;
+  renderSyncHealth();
   return true;
 }
 
@@ -489,6 +539,7 @@ async function loadSupabaseSettings() {
   });
   saveSettings();
   state.supabaseSettingsLoaded = true;
+  renderSyncHealth();
   return true;
 }
 
@@ -524,7 +575,10 @@ async function saveSupabaseTrainees() {
     headers: { Prefer: "resolution=merge-duplicates,return=representation" },
     body: JSON.stringify(roster),
   });
-  if (saved) state.remoteTrainees = roster;
+  if (saved) {
+    state.remoteTrainees = roster;
+    renderSyncHealth();
+  }
   return Boolean(saved);
 }
 
@@ -538,6 +592,7 @@ async function loadSupabaseQuestions() {
   );
   saveQuestions();
   state.supabaseQuestionsLoaded = true;
+  renderSyncHealth();
   return true;
 }
 
@@ -563,6 +618,7 @@ async function loadSupabaseSubmissions() {
   }
   mergeSubmissions(rows.map((row) => submissionFromSupabase(row, answerRows)));
   state.remoteSubmissionsLoaded = true;
+  renderSyncHealth();
   return true;
 }
 
@@ -592,6 +648,7 @@ async function saveSupabaseSubmission(submission) {
       body: JSON.stringify(answers),
     });
   }
+  renderSyncHealth();
   return true;
 }
 
@@ -603,6 +660,7 @@ async function refreshSupabaseData() {
     isOwner() ? loadSupabaseSubmissions() : Promise.resolve(false),
   ]);
   state.supabaseReady = results.some(Boolean);
+  renderSyncHealth();
   return state.supabaseReady;
 }
 
@@ -610,6 +668,7 @@ async function seedSupabaseFromCurrentApp() {
   if (!isOwner()) return false;
   const results = await Promise.all([saveSupabaseSettings(), saveSupabaseTrainees(), saveSupabaseQuestions()]);
   state.supabaseReady = results.some(Boolean);
+  renderSyncHealth();
   return results.every(Boolean);
 }
 

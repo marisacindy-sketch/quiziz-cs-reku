@@ -8,7 +8,7 @@
       name="description"
       content="CS Reku essay quiz webapp with login, access window, timer, and owner-only settings."
     />
-    <link rel="stylesheet" href="styles.css?v=75" />
+    <link rel="stylesheet" href="styles.css?v=76" />
     <style>
       .auth-visual {
         border: 1px solid rgba(209, 218, 230, 0.82) !important;
@@ -479,6 +479,22 @@
           <button class="secondary compact" id="closeSettings" type="button">Back to quiz</button>
         </div>
 
+        <section class="sync-health-card" aria-label="Supabase sync status">
+          <div class="sync-health-main">
+            <span class="sync-dot" id="syncHealthDot"></span>
+            <div>
+              <p class="eyebrow">Database sync</p>
+              <h3 id="syncHealthTitle">Checking Supabase...</h3>
+              <p id="syncHealthDetail">Questions, rules, roster, and responses will sync here.</p>
+            </div>
+          </div>
+          <div class="sync-health-stats">
+            <span><strong id="syncHealthTrainees">-</strong> trainees</span>
+            <span><strong id="syncHealthQuestions">-</strong> questions</span>
+            <span><strong id="syncHealthSubmissions">-</strong> responses</span>
+          </div>
+        </section>
+
         <form id="settingsForm" class="settings-form settings-panel" data-settings-section="quizControlsPanel">
           <div class="form-grid">
             <label>
@@ -720,7 +736,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=75"></script>
-    <script src="app.js?v=75"></script>
+    <script src="quiz-data.js?v=76"></script>
+    <script src="app.js?v=76"></script>
   </body>
 </html>
