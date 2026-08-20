@@ -2,6 +2,8 @@ const OWNER_EMAIL = "marisa@reku.id";
 const OWNER_PASSWORD = "owner123";
 const DEFAULT_CONNECTOR_URL =
   "https://script.google.com/a/macros/reku.id/s/AKfycby5KWshRpW3p_7WgTeRrwZL-WQ25yeIAuItkao97EdpeB-c60ELCq7_uVUOajG3qjor/exec";
+const SUPABASE_URL = "https://syuiypwhdljlcdnfizvv.supabase.co";
+const SUPABASE_KEY = "sb_publishable__RrqcpaaWjHd9HsUgVM0oQ_itLomO9t";
 const LEGACY_CONNECTOR_URLS = [
   "https://script.google.com/a/macros/reku.id/s/AKfycbzXc5Sb2V_Y0xqOy8QlMru72QRolVD8C7NNlYG9ncuNX70---x4KOIar2e5qpivjYVy/exec",
   "https://script.google.com/a/macros/reku.id/s/AKfycbwW9lKayU9h23tBChIPeQH5wZyCSoNfGiYFLv3tw3SUqPHVcaAjskVqbwNm3C7bHjxM/exec",
@@ -74,6 +76,11 @@ const state = {
   openResponseEmail: "",
   answers: {},
   remoteSubmissionsLoaded: false,
+  supabaseReady: false,
+  supabaseSettingsLoaded: false,
+  supabaseTraineesLoaded: false,
+  supabaseQuestionsLoaded: false,
+  remoteTrainees: [],
 };
 
 function normalizeStoredSettings() {
@@ -351,6 +358,261 @@ function activeConnectorUrl() {
   return DEFAULT_CONNECTOR_URL;
 }
 
+function hasSupabaseConfig() {
+  return Boolean(SUPABASE_URL && SUPABASE_KEY && SUPABASE_URL.includes(".supabase.co"));
+}
+
+async function supabaseRequest(path, options = {}) {
+  if (!hasSupabaseConfig()) return null;
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const headers = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  try {
+    const response = await fetch(url, { ...options, headers });
+    if (!response.ok) throw new Error(`Supabase ${response.status}`);
+    if (response.status === 204) return true;
+    const text = await response.text();
+    return text ? JSON.parse(text) : true;
+  } catch (error) {
+    console.warn("Supabase request failed", path, error);
+    return null;
+  }
+}
+
+function rosterTextFromProfiles(profiles = []) {
+  return profiles
+    .filter((profile) => profile?.email)
+    .map((profile) => `${profile.name || nameFromEmail(profile.email)} | ${profile.email} | ${profile.position || ""}`)
+    .join("\n");
+}
+
+function questionToSupabase(question) {
+  return {
+    id: question.id,
+    product: question.product,
+    number: Number(question.number) || 0,
+    type: question.type || "Concept essay",
+    points: Number(question.points || 10) || 10,
+    question: question.question,
+    answer_key: question.answer || "",
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function questionFromSupabase(row) {
+  return {
+    id: row.id,
+    product: row.product,
+    number: Number(row.number) || 0,
+    question: row.question,
+    answer: row.answer_key || row.answer || "",
+    points: Number(row.points || 10) || 10,
+  };
+}
+
+function submissionToSupabase(submission) {
+  return {
+    email: String(submission.email || "").toLowerCase(),
+    name: submission.name || "",
+    position: submission.position || "",
+    product: submission.activeProduct || submission.product || state.settings.activeProduct,
+    quiz_period: submission.quizPeriod || submissionPeriodKey(submission),
+    started_at: submission.startedAt || null,
+    submitted_at: submission.submittedAt || new Date().toISOString(),
+    submit_reason: submission.submitReason || "manual",
+    duration_seconds: Number(submission.durationSeconds || 0),
+    answered: Number(submission.answered || 0),
+    total_questions: Number(submission.totalQuestions || 0),
+  };
+}
+
+function submissionFromSupabase(row, answers = []) {
+  const answerMap = answers
+    .filter((answer) => answer.submission_id === row.id)
+    .reduce((map, answer) => {
+      map[answer.question_id] = answer.answer || "";
+      return map;
+    }, {});
+  return {
+    id: row.id,
+    email: String(row.email || "").toLowerCase(),
+    name: row.name || "",
+    position: row.position || "",
+    role: "trainee",
+    activeProduct: row.product,
+    quizPeriod: row.quiz_period,
+    startedAt: row.started_at || "",
+    submittedAt: row.submitted_at || "",
+    submitReason: row.submit_reason || "manual",
+    durationSeconds: Number(row.duration_seconds || 0),
+    durationFormatted: formatDuration(row.duration_seconds || 0),
+    answered: Number(row.answered || 0),
+    totalQuestions: Number(row.total_questions || 0),
+    answers: answerMap,
+    googleFormStatus: "supabase",
+  };
+}
+
+async function loadSupabaseTrainees() {
+  const rows = await supabaseRequest("trainees?select=name,email,position,is_active&is_active=eq.true&order=name.asc");
+  if (!Array.isArray(rows)) return false;
+  state.remoteTrainees = rows.map((row) => ({
+    name: row.name || nameFromEmail(row.email),
+    email: String(row.email || "").toLowerCase(),
+    position: row.position || "",
+  }));
+  if (state.remoteTrainees.length) {
+    state.settings.expectedEmails = rosterTextFromProfiles(state.remoteTrainees);
+    saveSettings();
+  }
+  state.supabaseTraineesLoaded = state.remoteTrainees.length > 0;
+  return true;
+}
+
+async function loadSupabaseSettings() {
+  const rows = await supabaseRequest("quiz_settings?select=*&id=eq.weekly&limit=1");
+  const settings = Array.isArray(rows) ? rows[0] : null;
+  if (!settings) return false;
+  state.settings = normalizeSettings({
+    ...state.settings,
+    openDay: settings.open_day,
+    openTime: settings.open_time,
+    closeDay: settings.close_day,
+    closeTime: settings.close_time,
+    durationMinutes: settings.duration_minutes,
+    activeProduct: settings.active_product,
+    expectedEmails: state.settings.expectedEmails,
+  });
+  saveSettings();
+  state.supabaseSettingsLoaded = true;
+  return true;
+}
+
+async function saveSupabaseSettings() {
+  const payload = {
+    id: "weekly",
+    open_day: Number(state.settings.openDay),
+    open_time: state.settings.openTime,
+    close_day: Number(state.settings.closeDay),
+    close_time: state.settings.closeTime,
+    duration_minutes: Number(state.settings.durationMinutes),
+    active_product: state.settings.activeProduct,
+    updated_at: new Date().toISOString(),
+  };
+  const saved = await supabaseRequest("quiz_settings?on_conflict=id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(payload),
+  });
+  return Boolean(saved);
+}
+
+async function saveSupabaseTrainees() {
+  const roster = traineeRoster().map((profile) => ({
+    email: profile.email,
+    name: profile.name || nameFromEmail(profile.email),
+    position: profile.position || "",
+    is_active: true,
+  }));
+  if (!roster.length) return false;
+  const saved = await supabaseRequest("trainees?on_conflict=email", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(roster),
+  });
+  if (saved) state.remoteTrainees = roster;
+  return Boolean(saved);
+}
+
+async function loadSupabaseQuestions() {
+  const rows = await supabaseRequest("questions?select=*&order=product.asc,number.asc");
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const questions = normalizeQuestionBank(rows.map(questionFromSupabase));
+  if (!questions.length) return false;
+  state.questions = PRODUCT_ORDER.flatMap((product) =>
+    questions.filter((question) => question.product === product).sort((a, b) => Number(a.number) - Number(b.number)),
+  );
+  saveQuestions();
+  state.supabaseQuestionsLoaded = true;
+  return true;
+}
+
+async function saveSupabaseQuestions(questions = state.questions) {
+  const payload = normalizeQuestionBank(questions).map(questionToSupabase);
+  if (!payload.length) return false;
+  const saved = await supabaseRequest("questions?on_conflict=id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(payload),
+  });
+  return Boolean(saved);
+}
+
+async function loadSupabaseSubmissions() {
+  const rows = await supabaseRequest("submissions?select=*&order=submitted_at.desc");
+  if (!Array.isArray(rows)) return false;
+  const ids = rows.map((row) => row.id).filter(Boolean);
+  let answerRows = [];
+  if (ids.length) {
+    answerRows =
+      (await supabaseRequest(`answers?select=*&submission_id=in.(${ids.join(",")})`)) || [];
+  }
+  mergeSubmissions(rows.map((row) => submissionFromSupabase(row, answerRows)));
+  state.remoteSubmissionsLoaded = true;
+  return true;
+}
+
+async function saveSupabaseSubmission(submission) {
+  const row = submissionToSupabase(submission);
+  const savedRows = await supabaseRequest("submissions?on_conflict=email,product,quiz_period", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: JSON.stringify(row),
+  });
+  const saved = Array.isArray(savedRows) ? savedRows[0] : null;
+  if (!saved?.id) return false;
+  const productQuestions = questionsForProduct(saved.product);
+  const answers = productQuestions.map((question) => ({
+    submission_id: saved.id,
+    question_id: question.id,
+    answer: submission.answers?.[question.id] || "",
+  }));
+  if (answers.length) {
+    await supabaseRequest(`answers?submission_id=eq.${encodeURIComponent(saved.id)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    await supabaseRequest("answers", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(answers),
+    });
+  }
+  return true;
+}
+
+async function refreshSupabaseData() {
+  const results = await Promise.all([
+    loadSupabaseSettings(),
+    loadSupabaseTrainees(),
+    loadSupabaseQuestions(),
+    isOwner() ? loadSupabaseSubmissions() : Promise.resolve(false),
+  ]);
+  state.supabaseReady = results.some(Boolean);
+  return state.supabaseReady;
+}
+
+async function seedSupabaseFromCurrentApp() {
+  if (!isOwner()) return false;
+  const results = await Promise.all([saveSupabaseSettings(), saveSupabaseTrainees(), saveSupabaseQuestions()]);
+  state.supabaseReady = results.some(Boolean);
+  return results.every(Boolean);
+}
+
 function loadRemoteSettings() {
   const url = activeConnectorUrl();
   if (!isValidConnectorUrl(url)) return Promise.resolve(false);
@@ -358,6 +620,8 @@ function loadRemoteSettings() {
 }
 
 async function refreshSharedConfig() {
+  const supabaseLoaded = await refreshSupabaseData();
+  if (supabaseLoaded) return { settingsLoaded: true, questionsLoaded: true };
   const settingsLoaded = await loadRemoteSettings();
   if (!settingsLoaded && !isOwner()) {
     state.settings = normalizeSettings({
@@ -505,6 +769,8 @@ function mergeSubmissions(incoming = []) {
 
 async function loadRemoteSubmissions() {
   if (!isOwner()) return false;
+  const supabaseLoaded = await loadSupabaseSubmissions();
+  if (supabaseLoaded) return true;
   const payload = await callSettingsConnector(activeConnectorUrl(), "get_submissions");
   if (!payload?.ok || !Array.isArray(payload.submissions)) return false;
   mergeSubmissions(payload.submissions);
@@ -1965,7 +2231,17 @@ function showApp() {
   els.userEmail.textContent = state.currentUser.email;
   els.userRole.textContent = isOwner() ? "owner" : "trainee";
   loadUserState();
-  publishOwnerQuestionOverrides();
+  if (isOwner()) {
+    const seedPromise = state.supabaseQuestionsLoaded ? Promise.resolve(true) : seedSupabaseFromCurrentApp();
+    seedPromise.then(() => {
+      loadSupabaseSubmissions().then(() => {
+        fillSettingsForm();
+        renderOwnerDashboard();
+        renderAnswerHistory();
+      });
+    });
+    if (!state.supabaseQuestionsLoaded) publishOwnerQuestionOverrides();
+  }
   renderStats();
   renderFilters();
   setActiveQuestion(availableQuestions()[0]?.id || state.questions[0]?.id);
@@ -2008,6 +2284,7 @@ async function submitFinal(reason = "manual") {
   saveAnswers();
   saveAttempt(finalAttempt);
   const submission = saveSubmission(finalAttempt);
+  await saveSupabaseSubmission(submission);
   await publishRemoteSubmission(submission);
   await submitToGoogleForm(submission);
   renderAccess();
@@ -2435,7 +2712,7 @@ async function saveQuestionEdit() {
   setActiveQuestion(state.activeId);
   els.saveQuestionEdit.disabled = true;
   els.saveQuestionEdit.textContent = "Syncing...";
-  const synced = await publishRemoteQuestions();
+  const synced = (await saveSupabaseQuestions()) || (await publishRemoteQuestions());
   els.saveQuestionEdit.disabled = false;
   els.saveQuestionEdit.textContent = synced ? "Saved + synced" : "Saved locally";
   window.setTimeout(() => {
@@ -2512,7 +2789,8 @@ function initEvents() {
     state.settings = normalizeSettings(state.settings);
     saveSettings();
     els.settingsSavedText.textContent = "Saving rules...";
-    const synced = await publishRemoteSettings();
+    const supabaseSynced = await Promise.all([saveSupabaseSettings(), saveSupabaseTrainees(), saveSupabaseQuestions()]);
+    const synced = supabaseSynced.every(Boolean) || (await publishRemoteSettings());
     resetLocalAttempts();
     fillSettingsForm();
     renderAfterSettingsChange();
@@ -2526,14 +2804,14 @@ function initEvents() {
     }`;
 
     if (synced) {
-      const questionsSynced = await publishRemoteQuestions();
+      const questionsSynced = (await saveSupabaseQuestions()) || (await publishRemoteQuestions());
       els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
         state.settings.closeDay,
       )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
         state.settings.activeProduct
       }. Allowed emails: ${allowedCount}. ${
         questionsSynced
-          ? "Rules and questions are synced for trainees."
+          ? "Rules and questions are synced in Supabase for trainees."
           : "Rules synced. Question sync needs the latest Apps Script connector deployment."
       }`;
     }
@@ -2672,11 +2950,10 @@ async function boot() {
   } catch {
     state.questions = window.QUIZ_DATA || [];
   }
-  const ownerQuestions = isOwner() ? ownerQuestionOverrides() : [];
-  if (ownerQuestions.length) {
-    state.questions = ownerQuestions;
-  }
-  await loadRemoteSettings();
+  await refreshSupabaseData();
+  const ownerQuestions = isOwner() && !state.supabaseQuestionsLoaded ? ownerQuestionOverrides() : [];
+  if (ownerQuestions.length) state.questions = ownerQuestions;
+  if (!state.supabaseSettingsLoaded) await loadRemoteSettings();
   initEvents();
   if (state.currentUser) showApp();
 }
