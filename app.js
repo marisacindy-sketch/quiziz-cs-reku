@@ -33,7 +33,8 @@ const PUBLIC_FALLBACK_SETTINGS = {
   closeDay: 0,
   closeTime: "23:59",
   durationMinutes: 35,
-  activeProduct: "Perpetuals",
+  activeProducts: PRODUCT_ORDER,
+  activeProduct: "General",
 };
 
 const defaultSettings = {
@@ -43,6 +44,7 @@ const defaultSettings = {
   closeTime: PUBLIC_FALLBACK_SETTINGS.closeTime,
   durationMinutes: PUBLIC_FALLBACK_SETTINGS.durationMinutes,
   answerKeyMode: "owner",
+  activeProducts: [...PUBLIC_FALLBACK_SETTINGS.activeProducts],
   activeProduct: PUBLIC_FALLBACK_SETTINGS.activeProduct,
   expectedEmails: DEFAULT_TRAINEE_ROSTER,
 };
@@ -402,7 +404,7 @@ function renderSyncHealth() {
   els.syncHealthCard.classList.toggle("is-offline", !online && Boolean(state.supabaseLastError));
   els.syncHealthTitle.textContent = online ? "Supabase online" : "Supabase not confirmed";
   els.syncHealthDetail.textContent = online
-    ? `Last sync: ${formatSyncTime(state.supabaseLastSyncAt)} WIB. Active product: ${state.settings.activeProduct}.`
+    ? `Last sync: ${formatSyncTime(state.supabaseLastSyncAt)} WIB. Products: ${activeProductsLabel()}.`
     : state.supabaseLastError || "Waiting for the first successful sync check.";
   els.syncHealthTrainees.textContent = String(state.remoteTrainees.length || expectedEmailList().length || 0);
   els.syncHealthQuestions.textContent = String(state.questions.length || 0);
@@ -534,6 +536,7 @@ async function loadSupabaseSettings() {
     closeDay: settings.close_day,
     closeTime: settings.close_time,
     durationMinutes: settings.duration_minutes,
+    activeProducts: settings.active_products || settings.active_product,
     activeProduct: settings.active_product,
     expectedEmails: state.settings.expectedEmails,
   });
@@ -551,7 +554,7 @@ async function saveSupabaseSettings() {
     close_day: Number(state.settings.closeDay),
     close_time: state.settings.closeTime,
     duration_minutes: Number(state.settings.durationMinutes),
-    active_product: state.settings.activeProduct,
+    active_product: activeProducts().join(","),
     updated_at: new Date().toISOString(),
   };
   const saved = await supabaseRequest("quiz_settings?on_conflict=id", {
@@ -746,6 +749,7 @@ function publishRemoteSettings() {
     closeDay: state.settings.closeDay,
     closeTime: state.settings.closeTime,
     durationMinutes: state.settings.durationMinutes,
+    activeProducts: activeProducts(),
     activeProduct: state.settings.activeProduct,
     expectedEmails: state.settings.expectedEmails,
   };
@@ -1033,9 +1037,39 @@ async function hashPassword(email, password) {
 }
 
 function normalizeSettings(settings) {
-  const next = { ...defaultSettings, ...(settings || {}) };
+  const input = settings || {};
+  const next = { ...defaultSettings, ...input };
+  const rawProducts = Object.prototype.hasOwnProperty.call(input, "activeProducts")
+    ? input.activeProducts
+    : Object.prototype.hasOwnProperty.call(input, "active_products")
+      ? input.active_products
+      : Object.prototype.hasOwnProperty.call(input, "active_product")
+        ? input.active_product
+        : Object.prototype.hasOwnProperty.call(input, "activeProduct")
+          ? input.activeProduct
+          : next.activeProducts;
+  const parsedProducts = Array.isArray(rawProducts)
+    ? rawProducts
+    : String(rawProducts || "").split(",").map((item) => item.trim());
+  next.activeProducts = PRODUCT_ORDER.filter((product) => parsedProducts.includes(product));
+  if (!next.activeProducts.length) next.activeProducts = [PRODUCT_ORDER[0]];
+  next.activeProduct = next.activeProducts[0];
   if (!String(next.expectedEmails || "").trim()) next.expectedEmails = DEFAULT_TRAINEE_ROSTER;
   return next;
+}
+
+function activeProducts() {
+  return Array.isArray(state.settings.activeProducts) && state.settings.activeProducts.length
+    ? state.settings.activeProducts
+    : [state.settings.activeProduct];
+}
+
+function isProductActive(product) {
+  return activeProducts().includes(product);
+}
+
+function activeProductsLabel() {
+  return activeProducts().join(", ");
 }
 
 function isOwner() {
@@ -1087,16 +1121,16 @@ function submissionPeriodKey(submission, fallbackDate = new Date()) {
   return String(submission?.submittedAt || fallbackDate.toISOString()).slice(0, 7);
 }
 
-function attemptStorageKey(product = state.settings.activeProduct, period = currentQuizPeriod()) {
+function attemptStorageKey(product = state.product, period = currentQuizPeriod()) {
   return storageKey(`attempt-${slugify(product)}-${period}`);
 }
 
-function getAttempt(product = state.settings.activeProduct, period = currentQuizPeriod()) {
+function getAttempt(product = state.product, period = currentQuizPeriod()) {
   if (!state.currentUser) return null;
   return JSON.parse(localStorage.getItem(attemptStorageKey(product, period)) || "null");
 }
 
-function saveAttempt(attempt, product = state.settings.activeProduct, period = currentQuizPeriod()) {
+function saveAttempt(attempt, product = state.product, period = currentQuizPeriod()) {
   localStorage.setItem(attemptStorageKey(product, period), JSON.stringify({ ...attempt, product, quizPeriod: period }));
 }
 
@@ -1218,8 +1252,9 @@ function getAccessState() {
   const now = new Date();
   const { openAt, closeAt } = getWindow(now);
   const open = now >= openAt && now <= closeAt;
-  const attempt = getAttempt();
-  const submitted = Boolean(attempt?.submittedAt || getSubmission(state.currentUser?.email, state.settings.activeProduct));
+  const currentProduct = isProductActive(state.product) ? state.product : activeProducts()[0];
+  const attempt = getAttempt(currentProduct);
+  const submitted = Boolean(attempt?.submittedAt || getSubmission(state.currentUser?.email, currentProduct));
   const started = Boolean(attempt?.startedByUser && attempt?.identityConfirmed && attempt?.startedAt && !submitted);
   const paused = Boolean(attempt?.pausedAt && attempt?.pausedRemainingMs);
   const endsAt = paused
@@ -1229,13 +1264,14 @@ function getAccessState() {
       : null;
   const expired = Boolean(!paused && endsAt && now > endsAt);
   const allowed = isOwner() || (open && started && !submitted && !expired);
-  return { open, allowed, submitted, started, expired, paused, openAt, closeAt, attempt, endsAt, now };
+  return { open, allowed, submitted, started, expired, paused, openAt, closeAt, attempt, endsAt, now, product: currentProduct };
 }
 
 function startWeeklyProduct(product = state.settings.activeProduct) {
   const access = getAccessState();
   if (!access.open || isOwner()) return;
-  if (product !== state.settings.activeProduct) return;
+  if (!isProductActive(product)) return;
+  state.product = product;
   if (getSubmission(state.currentUser.email, product)) return;
   if (getAttempt(product)?.startedByUser && getAttempt(product)?.identityConfirmed && getAttempt(product)?.startedAt) {
     renderAccess();
@@ -1307,7 +1343,8 @@ function escapeHtml(value) {
 
 function availableQuestions() {
   if (isOwner()) return state.questions;
-  return state.questions.filter((item) => item.product === state.settings.activeProduct);
+  const currentProduct = isProductActive(state.product) ? state.product : activeProducts()[0];
+  return state.questions.filter((item) => item.product === currentProduct);
 }
 
 function filteredQuestions() {
@@ -1329,8 +1366,8 @@ function renderStats() {
     els.productSummaryCopy.textContent = "General, Spot, US Stock, Perpetuals";
   } else {
     els.productSummaryLabel.textContent = "This week";
-    els.productSummaryValue.textContent = state.settings.activeProduct;
-    els.productSummaryCopy.textContent = "Only this product is open for trainees";
+    els.productSummaryValue.textContent = activeProducts().length;
+    els.productSummaryCopy.textContent = activeProductsLabel();
   }
   els.answeredCount.textContent = answered;
   els.questionCount.textContent = questions.length;
@@ -1348,7 +1385,7 @@ function productCompletion(product) {
 
 function productLaunchState(product, access = getAccessState()) {
   const completed = Boolean(productCompletion(product));
-  const active = product === state.settings.activeProduct;
+  const active = isProductActive(product);
   const attempt = getAttempt(product);
   const started = Boolean(active && attempt?.startedByUser && attempt?.identityConfirmed && attempt?.startedAt && !completed);
   if (completed) {
@@ -1383,7 +1420,7 @@ function renderProductLauncher(access = getAccessState()) {
     return;
   }
 
-  const activeAttempt = getAttempt(state.settings.activeProduct);
+  const activeAttempt = getAttempt(isProductActive(state.product) ? state.product : activeProducts()[0]);
   const showLauncher = !access.allowed || !activeAttempt?.startedByUser || !activeAttempt?.identityConfirmed;
   els.productLauncher.hidden = !showLauncher;
   renderTraineeIdentityControls();
@@ -1494,8 +1531,9 @@ function renderQuestionList() {
 function renderTraineeForm() {
   if (isOwner()) return;
   const questions = availableQuestions();
-  els.traineeProductName.textContent = state.settings.activeProduct;
-  els.traineeProductName.style.color = productColor(state.settings.activeProduct);
+  const currentProduct = isProductActive(state.product) ? state.product : activeProducts()[0];
+  els.traineeProductName.textContent = currentProduct;
+  els.traineeProductName.style.color = productColor(currentProduct);
   els.traineeQuestionForm.innerHTML = questions
     .map(
       (question) => `
@@ -1603,7 +1641,7 @@ function renderAccess() {
     els.accessBanner.className = "access-banner open";
     els.accessStatus.textContent = "Ready";
     els.accessTitle.textContent = "Start when you’re ready. The timer has not started yet.";
-    els.accessCopy.textContent = `This week: ${state.settings.activeProduct}. Open until ${formatDate(access.closeAt)} WIB.`;
+    els.accessCopy.textContent = `This week: ${activeProductsLabel()}. Open until ${formatDate(access.closeAt)} WIB.`;
     setQuizEnabled(false, access);
     renderProductLauncher(access);
     return;
@@ -1786,7 +1824,9 @@ function fillSettingsForm() {
   els.closeDay.value = String(state.settings.closeDay);
   els.closeTime.value = state.settings.closeTime;
   els.durationMinutes.value = state.settings.durationMinutes;
-  els.activeProductSetting.value = state.settings.activeProduct;
+  els.activeProductSetting.querySelectorAll("input[type=checkbox]").forEach((input) => {
+    input.checked = isProductActive(input.value);
+  });
   els.expectedEmails.value = state.settings.expectedEmails || "";
   if (els.resetPasswordEmail) {
     const selectedEmail = els.resetPasswordEmail.value;
@@ -1833,7 +1873,7 @@ function questionsForProduct(product) {
   return state.questions.filter((question) => question.product === product);
 }
 
-function getSubmission(email, product = state.settings.activeProduct, period = currentQuizPeriod()) {
+function getSubmission(email, product = state.product, period = currentQuizPeriod()) {
   return getSubmissions().find(
     (submission) =>
       submission.email === email &&
@@ -2367,7 +2407,7 @@ async function autoSubmitExpiredAttempt() {
   state.autoSubmitting = false;
 }
 
-function buildSubmission(attempt, product = state.settings.activeProduct) {
+function buildSubmission(attempt, product = state.product) {
   const submittedQuestions = questionsForProduct(product);
   const answered = submittedQuestions.filter((item) => (state.answers[item.id] || "").trim()).length;
   const selectedIdentity = getTraineeIdentity();
@@ -2400,11 +2440,12 @@ function buildSubmission(attempt, product = state.settings.activeProduct) {
 }
 
 function saveSubmission(attempt) {
-  const submission = buildSubmission(attempt, state.settings.activeProduct);
+  const product = isProductActive(state.product) ? state.product : activeProducts()[0];
+  const submission = buildSubmission(attempt, product);
   const submissions = getSubmissions().filter(
     (item) =>
       item.email !== state.currentUser.email ||
-      item.activeProduct !== state.settings.activeProduct ||
+      item.activeProduct !== product ||
       submissionPeriodKey(item) !== submission.quizPeriod,
   );
   submissions.push(submission);
@@ -2842,7 +2883,9 @@ function initEvents() {
       closeTime: els.closeTime.value,
       durationMinutes: Number(els.durationMinutes.value),
       answerKeyMode: "owner",
-      activeProduct: els.activeProductSetting.value,
+      activeProducts: [...els.activeProductSetting.querySelectorAll("input[type=checkbox]:checked")].map(
+        (input) => input.value,
+      ),
       expectedEmails: els.expectedEmails.value.trim(),
     };
     state.settings = normalizeSettings(state.settings);
@@ -2856,8 +2899,8 @@ function initEvents() {
     const allowedCount = expectedEmailList().length;
     els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
       state.settings.closeDay,
-    )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
-      state.settings.activeProduct
+    )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Products: ${
+      activeProductsLabel()
     }. Allowed emails: ${allowedCount}. ${
       synced ? "Rules synced for trainees. Syncing questions..." : "Saved here, but connector did not confirm the trainee sync."
     }`;
@@ -2866,8 +2909,8 @@ function initEvents() {
       const questionsSynced = (await saveSupabaseQuestions()) || (await publishRemoteQuestions());
       els.settingsSavedText.textContent = `Saved: ${dayName(state.settings.openDay)} ${state.settings.openTime} to ${dayName(
         state.settings.closeDay,
-      )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Active product: ${
-        state.settings.activeProduct
+      )} ${state.settings.closeTime}, ${state.settings.durationMinutes} minutes. Products: ${
+        activeProductsLabel()
       }. Allowed emails: ${allowedCount}. ${
         questionsSynced
           ? "Rules and questions are synced in Supabase for trainees."

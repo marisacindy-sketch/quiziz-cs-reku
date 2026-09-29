@@ -352,9 +352,9 @@
           <div class="section-heading">
             <div>
               <p class="eyebrow">Product quiz</p>
-              <h2>Start this week’s product</h2>
+              <h2>Start this week’s products</h2>
             </div>
-            <span id="productLauncherHint">Timer starts only after you press Start.</span>
+            <span id="productLauncherHint">Choose a product to start its timer.</span>
           </div>
           <div class="trainee-identity-card">
             <label>
@@ -533,16 +533,16 @@
               <span>Working duration</span>
               <input id="durationMinutes" type="number" min="10" max="480" step="5" />
             </label>
-            <label>
-              <span>This week’s product</span>
-              <select id="activeProductSetting">
-                <option value="General">General</option>
-                <option value="Kripto Spot">Kripto Spot</option>
-                <option value="US Stock">US Stock</option>
-                <option value="Perpetuals">Perpetuals</option>
-              </select>
-              <small>Trainees will only see this product after you save.</small>
-            </label>
+            <fieldset class="form-fieldset">
+              <legend>Products open this week</legend>
+              <div id="activeProductSetting" class="product-check-grid">
+                <label><input type="checkbox" value="General" checked /> <span>General</span></label>
+                <label><input type="checkbox" value="Kripto Spot" checked /> <span>Kripto Spot</span></label>
+                <label><input type="checkbox" value="US Stock" checked /> <span>US Stock</span></label>
+                <label><input type="checkbox" value="Perpetuals" checked /> <span>Perpetuals</span></label>
+              </div>
+              <small>Trainees can open every selected product during this quiz window.</small>
+            </fieldset>
             <label class="form-wide access-list-card">
               <span>Access list</span>
               <strong>Trainee roster</strong>
@@ -736,7 +736,7 @@
       </div>
     </div>
 
-    <script src="quiz-data.js?v=76"></script>
-    <script src="app.js?v=76"></script>
+    <script src="quiz-data.js?v=77"></script>
+    <script src="app.js?v=77"></script>
   </body>
 </html>

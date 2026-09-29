@@ -100,6 +100,7 @@ function defaultWeeklySettings() {
     closeDay: 0,
     closeTime: '23:59',
     durationMinutes: 90,
+    activeProducts: ['General', 'Kripto Spot', 'US Stock', 'Perpetuals'],
     activeProduct: 'General',
     expectedEmails: DEFAULT_TRAINEE_ROSTER,
   };
