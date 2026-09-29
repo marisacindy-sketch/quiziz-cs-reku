@@ -1177,15 +1177,15 @@ h3 {
 
 .product-launcher {
   margin-bottom: 14px;
-  padding: 13px;
+  padding: 10px;
 }
 
 .product-launcher .section-heading {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .product-launcher .section-heading h2 {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 760;
 }
 
@@ -1219,13 +1219,13 @@ h3 {
 
 .product-launch-card {
   display: flex;
-  min-height: 94px;
+  min-height: 76px;
   flex-direction: column;
   justify-content: space-between;
-  gap: 9px;
-  padding: 11px;
+  gap: 6px;
+  padding: 8px;
   border: 1px solid rgba(132, 151, 176, 0.24);
-  border-radius: 18px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
@@ -1242,16 +1242,16 @@ h3 {
 
 .product-launch-card strong {
   display: block;
-  margin: 6px 0 3px;
+  margin: 4px 0 2px;
   color: var(--ink);
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   font-weight: 760;
 }
 
 .product-launch-card small {
   display: block;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 650;
   line-height: 1.35;
 }
@@ -1265,14 +1265,14 @@ h3 {
 
 .product-start-button {
   width: 100%;
-  min-height: 32px;
-  padding: 7px 10px;
+  min-height: 27px;
+  padding: 5px 8px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: linear-gradient(135deg, #0f8f72, #2767d8);
   color: #fff;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.74rem;
   font-weight: 760;
   cursor: pointer;
   box-shadow: 0 10px 22px rgba(22, 104, 152, 0.18);
